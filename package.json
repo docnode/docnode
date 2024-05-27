@@ -1,0 +1,27 @@
+{
+  "name": "docnode",
+  "version": "0.0.0",
+  "description": "Coming soon",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/docnode/docnode.git"
+  },
+  "keywords": [
+    "CRDT",
+    "tree",
+    "offline-first",
+    "local-first",
+    "RTC",
+    "real-time-collaboration"
+  ],
+  "author": "Germán Jabloñski",
+  "license": "SEE LICENSE IN LICENSE.md",
+  "bugs": {
+    "url": "https://github.com/docnode/docnode/issues"
+  },
+  "homepage": "https://github.com/docnode/docnode#readme"
+}
