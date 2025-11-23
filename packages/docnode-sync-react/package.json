@@ -1,6 +1,7 @@
 {
   "name": "@docnode/sync-react",
   "license": "SEE LICENSE IN LICENSE.md",
+  "private": true,
   "type": "module",
   "scripts": {
     "dev": "tsc -p tsconfig.build.json --watch",

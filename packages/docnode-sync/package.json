@@ -1,6 +1,7 @@
 {
   "name": "@docnode/sync",
   "license": "SEE LICENSE IN LICENSE.md",
+  "private": true,
   "type": "module",
   "scripts": {
     "dev": "concurrently \"tsc -p tsconfig.build.json --watch\" \"tsx watch --include ./worker ./worker/bundle.ts\"",

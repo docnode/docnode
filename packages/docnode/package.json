@@ -1,7 +1,8 @@
 {
   "name": "docnode",
-  "version": "0.0.0-test",
+  "version": "0.1.0",
   "license": "SEE LICENSE IN LICENSE.md",
+  "description": "A type-safe, fast, ID-based Operational Transformation (OT) framework.",
   "type": "module",
   "scripts": {
     "dev": "tsc -p tsconfig.build.json --watch",
@@ -9,6 +10,10 @@
     "clean": "rm -rf .next node_modules .turbo dist tsconfig.build.tsbuildinfo || rmdir /s /q .next node_modules .turbo dist tsconfig.build.tsbuildinfo",
     "typecheck": "tsc --noEmit"
   },
+  "files": [
+    "dist",
+    "LICENSE.md"
+  ],
   "exports": {
     ".": {
       "types": "./dist/src/exports/index.d.ts",
