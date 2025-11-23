@@ -1,0 +1,147 @@
+---
+title: "Public Sync: A New Term to Preserve the Original Meaning of Local-First"
+description: In this article, I will try to redefine what I think Martin Kleppmann and company are trying to define. I will also argue why local-first is not a good name and propose alternatives.
+author: German Jablonski
+date: 2024-08-06
+---
+
+{/* TODO: this is legacy code moved from another project. I don't know if it is working. Review `Article.tsx` as well. */}
+export const metadata = {
+title:
+"Public Sync: A New Term to Preserve the Original Meaning of Local-First",
+description:
+"In this article, I will try to redefine what I think Martin Kleppmann and company are trying to define. I will also argue why local-first is not a good name and propose alternatives.",
+openGraph: {
+title: "Now We Know What Local-First Means (And It's Not What You Think)",
+images: [
+{
+url: "7-ideals.png",
+},
+],
+description:
+"In this article, I will try to redefine what I think Martin Kleppmann and company are trying to define. I will also argue why local-first is not a good name and propose alternatives.",
+type: "article",
+image: "7-ideals.png",
+url: "https://docnode.dev/local-first",
+article: {
+publishedTime: new Date("2024-08-06").toISOString(),
+modifiedTime: new Date("2024-08-06").toISOString(),
+authors: ["Germán Jabloñski"],
+tags: [
+"local-first",
+"offline-first",
+"public sync",
+"distributed sync",
+"libre sync",
+"CRDT",
+],
+},
+twitter: {
+card: "summary_large_image",
+site: "@x",
+},
+},
+};
+
+## Introduction
+
+In 2019, Ink & Switch published the famous article “[Local-first software: You own your data, in spite of the cloud](https://www.inkandswitch.com/local-first/)”, written by Martin Kleppmann and company.
+
+Before then, the term offline-first was already common in the programming world, but starting with that article, the term local-first began to be used as well.
+
+In [a recent talk at the Local-First Conf](https://www.youtube.com/watch?v=NMq0vncHJvU) titled “The past, present, and future of local-first” that was published this month, Martin Klepmann stated that the decision to coin a new term was intentional, to refer to something specific and different from offline-first.
+
+> The term offline-first has already been around for a long time, it predates local-first by at least 6 years and obviously we were aware of the term offline-first when we coined the term local-first, and the reason we coined a new term was because we wanted to express something different, something new, something more than offline-first which was not captured in the term offline-first.
+
+Martin goes on to say that the original Ink & Switch essay laid out 7 software ideals, but didn't really give a precise definition of what a local-first software is.
+
+> What we did in the original local-first essay was we articulated these seven ideals. The idea that we were trying to do at the time was to think, well, if you thick all of those seven boxes then you can qualify as being local-first software but you could also imagine to being a somewhat of a gradient were there’s a gray area of being like somewhat local-first but maybe not satisfying all of these ideals. We've now since then come to realize that actually these seven ideals aren't really a good definition of what local-first is. The ideals are actually more the benefits that local-first can bring, especially from the point of view of an end user but it's not really a crisp definition that allows you to say like: 'is this piece of software local-first or not'?. We've realized more recently that there's a need to articulate more precisely what it is we mean and I want to propose one such definition in this talk. We'll probably do a follow-up to the local-first essay sometime soon as well to have it in written form. The definition I will propose is potentially up to some debate and people might reasonably disagree with what I will propose as a definition but this is sort of what we’ve come to.
+
+In this article, I will try to redefine what I think Martin Klepmann and company are trying to define. I will also argue why local-first is not a good name and propose alternatives.
+
+## The 7 Ideals
+
+![The 7 ideals of local-first software](/7-ideals.png "The 7 ideals of local-first software")
+
+Ideal number 3 states that the app should be usable even without connection to any network, and ideal number 2 that the app should be multi-device. The concept of offline-first was already collectively understood as an app that satisfies those two characteristics. That is the definition of offline-first I propose in this article and the one I will use from now on.
+
+It is important to note that when we talk about “usable without a network” or that “the network is optional”, we refer to the functionalities of the app that do not require connection to a network, with the expectation that the user can synchronize data when the connection is established or restored.
+
+Ideals 1, 5 and 7 are benefits derived from an offline-first app. In an offline-first app “your data, and the software that is needed to read and modify your data, are all stored locally on your computer”, leading to:
+
+- Speed: They are faster as they do not need to wait for network requests (ideal 1).
+- Durability: They are more durable over time as no company's decisions can prevent users from using the software on their devices (ideal 5).
+- Control: They give users greater ownership and control (ideal 7\) because all the data and software are stored locally.
+
+We still need to discuss ideals 4 and 7\. I see no use or benefit in including them in the definition of offline-first or coining a new term for the following reasons:
+
+1. Existing Terminology: We already have good terms that describe these concepts. We say an app is “collaborative” if it satisfies ideal 4, and “secure” if it satisfies ideal 7.
+1. Ambiguity: It is difficult to agree on a precise way to determine when an app meets these ideals. An ambiguous definition will only lead to the term being used for anything, as different people have different standards.
+1. Applicability: The seven ideals are proposed as desirable qualities but do not apply to all apps. For example, a private app like a diary that works offline and syncs across devices but doesn't share data with other users. It would be unreasonable to correct a developer calling such an app local-first for not meeting ideal number 4\.
+1. Clarity: The term local-first has not successfully distinguished itself from offline-first. Even among developers involved in the local-first community, many consider it a synonym for offline-first.
+
+The 7 ideals cannot successfully fulfill their purpose of serving as a kind of checklist because some are ambiguous, and others are derivative. If you ask me what local-first software is, I would say that the term was coined simply to talk about software that is offline-first, secure, and collaborative, although in practice it is usually used as a synonym for offline-first.
+
+This dissonance between its use and its origin could probably have been avoided if a more descriptive term or an acronym like OSC (offline-first, secure, and collaborative) had been used. But that is not the point of this article. Whether the term local-first has been a good choice, or whether people are using it as it was originally conceived, are not my main concern.
+
+What I want to argue is that the concept Martin presented in his latest talk is distinct and separate from the original essay and therefore deserves a new term. Re-defining local-first in relation to these new ideas would only lead to more confusion. If that were to happen, a review of the facts would look like this:
+
+- Martin and company wrote an article with seven desirable software qualities and coined the term local-first for software meeting these ideals. The term was similar to offline-first because of its links to several ideals.
+- The community found these seven ideals attractive, starting a movement under the name local-first. However, for most people, offline-first and local-first are synonyms.
+- Martin and company acknowledged that the concept they wanted to convey was not correctly defined in the original article and proposed a new definition, parallel and independent of offline-first.
+
+And that is how we would end up with a term that in practice for many would be very close to offline-first, but in theory would mean something very different.
+
+To prevent that from happening, in the next section I will propose a definition for the concept that Martin presented in his talk.
+
+## The New Concept
+
+As mentioned in the introduction, Martin acknowledged that the local-first essay did not define local-first software. At the conference, the closest he came to a new definition was:
+
+> In local-first software, the availability of another computer should never prevent you from working.
+
+Or the other way around:
+
+> If it doesn’t work if the app developer goes out of business and shuts down their servers, it’s not local-first.
+
+It's clear that Martin is referring here to software functionalities that require a network, such as multi-device synchronization and collaboration.
+
+The most illuminating moment of the talk to understand what he is trying to conceptualize is when he lays out the 4 ways in which software could satisfy this property:
+
+![The 4 ways](/journey-proof.png "The 4 ways")
+
+Although now we understand what Martin meant with his definition, if we are technically strict these 4 options do not prevent "the availability of another computer from preventing you from working".
+
+So, understanding what the concept is that he is trying to define, my proposed definition is as follows:
+
+> A public sync application is one that is distributed with the necessary software to use all the functionalities that require a network.
+
+My suggestion is to use the term public sync instead of local-first. In the next section, I explain why public sync is the best name so far and what other alternatives have been discussed.
+
+## Martin's Comments
+
+I am very grateful to Martin for reviewing the first draft of this article and giving me feedback before publishing it. Below are some of the points discussed:
+
+**1\. Name of the new term**
+
+In the first draft, I proposed the name "libre sync" (or alternatively open/free sync) instead of "public sync". Martin's observation was:
+
+> Libre sync seems to carry the connotation that the software is FLOSS. Although I'm in favor of open source, restricting it would not be what we intended with the term. I think it's okay for software to be closed-source and commercially licensed as long as it's not dependent on a proprietary remote service.
+
+This is a valid point that I have also considered. My reasoning was that by not including the word "source" as in FLOSS, the term would allow what is distributed to be a binary or executable rather than the source code of the sync engine. Regarding licenses, both the OSI and the FSF have their own criteria, so I thought libre sync could be license-agnostic.
+
+Anyway, the very need for these clarifications is an indication that it may be a term prone to confusion.
+
+Therefore, I propose "public sync" as a more suitable alternative. I also considered "distributed sync," but it might imply that the sync protocol should be decentralized, which could exclude the use of a self-hosted server.
+
+**2\. Local network**
+
+In several instances where the article now talks about "networks" the first draft used the word "internet". Martin's observation was that the term should allow for local networks such as Bluetooth or local WiFi, and that is why the change was made.
+
+## Final Comments
+
+[Comments on this article are on Hacker News](https://news.ycombinator.com/item?id=41180247).
+
+Also, as this is the inaugural post in this domain, I want to take the opportunity to introduce DocNode. DocNode is a high-performance CRDT designed with a strong emphasis on developer experience.
+
+Stay tuned for more announcements soon. To keep up with the latest updates, follow the project on [Discord](https://discord.gg/WWCWcphGSJ), [Twitter](https://x.com/docnode), or [GitHub](https://github.com/docnode/docnode).

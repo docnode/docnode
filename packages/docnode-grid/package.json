@@ -1,0 +1,8 @@
+{
+  "name": "@docnode/grid",
+  "type": "module",
+  "license": "SEE LICENSE IN LICENSE.md",
+  "dependencies": {
+    "docnode": "workspace:*"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "extends": "ultimate-tooling/tsc/typechecking/dom",
+  "compilerOptions": {
+    "exactOptionalPropertyTypes": true,
+    "lib": ["ESNext", "dom", "dom.iterable"]
+  }
+}

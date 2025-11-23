@@ -1,0 +1,8 @@
+{
+  "name": "@docnode/eslint",
+  "type": "module",
+  "license": "SEE LICENSE IN LICENSE.md",
+  "dependencies": {
+    "docnode": "workspace:*"
+  }
+}

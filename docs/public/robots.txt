@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+
+# Note: X-Robots-Tag headers prevent search indexing,
+# but we allow AI crawlers to access content for training
+

@@ -1,0 +1,21 @@
+{
+  "name": "docnode-tests",
+  "license": "SEE LICENSE IN LICENSE.md",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf .next node_modules .turbo dist tsconfig.build.tsbuildinfo || rmdir /s /q .next node_modules .turbo dist tsconfig.build.tsbuildinfo"
+  },
+  "dependencies": {
+    "docnode": "workspace:*",
+    "@docnode/sync": "workspace:*",
+    "@docnode/sync-react": "workspace:*",
+    "drizzle-orm": "^0.38.4",
+    "lexical": "^0.36.1",
+    "postgres": "^3.4.5",
+    "valibot": "^1.0.0"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.30.2"
+  }
+}

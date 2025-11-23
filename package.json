@@ -1,0 +1,58 @@
+{
+  "name": "@docnode/monorepo",
+  "devDependencies": {
+    "@playwright/test": "1.51.0",
+    "@types/node": "^22.10.7",
+    "@vitest/browser": "^4.0.8",
+    "@vitest/coverage-v8": "4.0.8",
+    "@vitest/eslint-plugin": "^1.1.25",
+    "@vitest/ui": "4.0.8",
+    "bun": "^1.1.42",
+    "concurrently": "^9.1.2",
+    "dotenv": "^16.4.7",
+    "eslint": "^9.19.0",
+    "eslint-plugin-playwright": "^2.2.0",
+    "eslint-plugin-regexp": "^2.10.0",
+    "eslint-plugin-unicorn": "^56.0.1",
+    "jiti": "^2.4.2",
+    "lint-staged": "15.4.1",
+    "mitata": "^1.0.34",
+    "playwright": "1.51.0",
+    "prettier": "3.4.2",
+    "prettier-plugin-tailwindcss": "^0.6.11",
+    "@vitest/browser-playwright": "^4.0.8",
+    "tsx": "^4.19.2",
+    "turbo": "2.3.3",
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.21.0",
+    "ultimate-tooling": "^1.0.0",
+    "vitest": "^4.0.8"
+  },
+  "private": true,
+  "license": "SEE LICENSE IN LICENSE.md",
+  "type": "module",
+  "scripts": {
+    "build": "turbo build",
+    "dev": "lsof -ti:3000,8081 | xargs kill -9; turbo dev",
+    "fix": "concurrently \"prettier --write . --log-level warn --ignore-path .gitignore\" \"eslint\" \"tsc --noEmit\" \"turbo typecheck --log-order=grouped\" --prefixColors \"yellow,magenta,green,cyan\" --group --names \"prettier,eslint,tsc-root,tsc-packages\" --prefix name",
+    "check": "concurrently \"prettier --check . --log-level warn --ignore-path .gitignore\" \"eslint\" \"tsc --noEmit\" \"turbo typecheck --log-order=grouped\" --prefixColors \"yellow,magenta,green,cyan\" --group --names \"prettier,eslint,tsc-root,tsc-packages\" --prefix name",
+    "test": "pnpm -r build --watch & vitest watch",
+    "test:coverage": "pnpm -r build --watch & vitest --coverage --ui",
+    "test:coverage:once": "pnpm -r build & vitest --coverage --watch=false",
+    "test:e2e": "playwright test --project=chromium",
+    "clean": "concurrently \"turbo clean\" \"rm -rf .test-results node_modules dist .turbo tsconfig.tsbuildinfo\" || rmdir /s /q .test-results node_modules dist .turbo tsconfig.tsbuildinfo",
+    "prepare": "git config --local core.hooksPath .github/hooks && echo 'githooks installed' || echo 'githooks install failed'",
+    "bench": "MITATA=1 npx tsx tests/core/benchmarks/iterators.bench.ts",
+    "bench:vitest": "vitest bench",
+    "bench:bun": "MITATA=1 bun run tests/core/benchmarks/iterators.bench.ts"
+  },
+  "packageManager": "pnpm@9.10.0",
+  "lint-staged": {
+    "*": "prettier --write --ignore-unknown"
+  },
+  "prettier": {
+    "plugins": [
+      "prettier-plugin-tailwindcss"
+    ]
+  }
+}

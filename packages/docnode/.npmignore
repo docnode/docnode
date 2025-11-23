@@ -1,0 +1,13 @@
+# Test this file with: `npm publish --dry-run`
+# ---
+
+# blacklist all by default (It's safer to use a whitelist.
+# It will work similar to package.json.files, but with globs)
+**
+
+# include dist except for sourceMaps and declarationMaps
+!dist/**
+dist/**/*.map
+
+# include LICENSE.md
+!LICENSE.md

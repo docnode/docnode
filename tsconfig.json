@@ -1,0 +1,7 @@
+{
+  "extends": "ultimate-tooling/bundler/dom",
+  "exclude": ["packages", "docs", "playwright", "tests"],
+  "compilerOptions": {
+    "exactOptionalPropertyTypes": true
+  }
+}

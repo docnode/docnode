@@ -1,0 +1,33 @@
+name: Check
+
+# Always make sure that direct pushes to main are not allowed!
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-format-types:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: package.json
+
+      # installing dependencies with cache
+      - name: Cache dependencies
+        id: cache-deps
+        uses: actions/cache@v3
+        with:
+          path: ~/.pnpm-store
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: check lint, format, and types
+        env:
+          SKIP_ENV_VALIDATION: 1
+        run: pnpm run check

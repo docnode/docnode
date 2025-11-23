@@ -1,0 +1,21 @@
+{
+  "name": "docnode",
+  "version": "0.0.0-test",
+  "license": "SEE LICENSE IN LICENSE.md",
+  "type": "module",
+  "scripts": {
+    "dev": "tsc -p tsconfig.build.json --watch",
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "rm -rf .next node_modules .turbo dist tsconfig.build.tsbuildinfo || rmdir /s /q .next node_modules .turbo dist tsconfig.build.tsbuildinfo",
+    "typecheck": "tsc --noEmit"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/src/exports/index.d.ts",
+      "default": "./dist/src/exports/index.js"
+    }
+  },
+  "dependencies": {
+    "ulid": "^3.0.1"
+  }
+}

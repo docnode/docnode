@@ -1,0 +1,20 @@
+{
+  "pages": [
+    "index",
+    "getting-started",
+    "license",
+    "--- Learn ---",
+    "overview",
+    "nodes",
+    "doc-lifecycle",
+    "operations-and-diff",
+    "persistence",
+    "undo-manager",
+    "render",
+    "ot-vs-crdt",
+    "--- More ---",
+    "sync",
+    "roadmap"
+  ],
+  "defaultOpen": true
+}

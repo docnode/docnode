@@ -1,0 +1,29 @@
+// TODO: in package.json, add the following script at the end of the build step:     "typedoc": "typedoc
+
+{
+  "$schema": "https://typedoc-plugin-markdown.org/schema.json",
+  // "sourceLinkTemplate": "https://github.com/docnode-js/docnode/blob/{gitRevision}/{path}#L{line}",
+  "plugin": ["typedoc-plugin-markdown"], //, "./typedoc-plugin.mjs"], // see that file for more info (TODO)
+
+  "entryPoints": ["./docnode/index.ts", "./docnode-react/index.tsx"],
+
+  "exclude": ["**/node_modules/**/*", "**/dist/**/*"],
+  "excludePrivate": true,
+  "fileExtension": ".mdx",
+  "out": "../docs/src/api-unprocessed",
+  "sort": ["source-order"],
+
+  // only one file per module (entry point). Otherwise, it will generate a file per class, function, etc.
+  "outputFileStrategy": "modules",
+
+  // in vanilla typedoc is "hideParametersInTitle", but in typedoc-plugin-markdown is "expandParameters"
+  // see https://www.typedoc-plugin-markdown.org/docs/typedoc-usage#output-options
+  "expandParameters": true,
+
+  // everything looks better in tables
+  "parametersFormat": "table",
+  "propertiesFormat": "table",
+  "enumMembersFormat": "table",
+  "typeDeclarationFormat": "table",
+  "indexFormat": "table"
+}

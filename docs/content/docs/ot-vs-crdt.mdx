@@ -1,0 +1,22 @@
+---
+title: OT vs CRDT
+---
+
+<Callout type="warning">This page is a work in progress.</Callout>
+
+# TODO: things to write about
+
+| OT             | CRDT         |
+| -------------- | ------------ |
+| Hard deletes   | Soft deletes |
+| Central Server | P2P          |
+
+- no-positional OT (id based).
+- What about text?
+- move operation
+- id exposed, preserved with move operation
+- history versioning
+- EG-Walker
+
+{/* differential synchronization? */}
+{/* - unlike a CRDT, it does not pretend that operations are commutative and idempotent, but that all clients must apply operations in the same order to converge to the same document. Due to this, the easiest way to resolve conflicts is with a central server that serves, among other things, as an arbiter over the order of operations. */}
