@@ -21,6 +21,15 @@ const withMDX = createMDX({
 /** @type {import('next').NextConfig} */
 const config = {
   reactStrictMode: true,
+  async redirects() {
+    return [
+      {
+        source: "/local-first",
+        destination: "/blog/local-first",
+        permanent: true, // 301 redirect
+      },
+    ];
+  },
   async rewrites() {
     return [
       {
