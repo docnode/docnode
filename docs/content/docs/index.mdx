@@ -2,6 +2,22 @@
 title: Introduction
 ---
 
+import {
+  TypeFeature,
+  SyncBackendFeature,
+  PricingFeature,
+  LicenseFeature,
+  TypesOfNodesFeature,
+  BundleSizeFeature,
+  TypeSafeSchemasFeature,
+  MoveOperationFeature,
+  HardDeletesFeature,
+  P2PSupportFeature,
+  SchemaNormalizationFeature,
+  AutomaticBatchingFeature,
+  NodeIDsPublicFeature,
+} from "@/components/ComparisonFeatures";
+
 ## What is DocNode
 
 DocNode is a local-first framework. It is primarily composed of:
@@ -15,23 +31,108 @@ DocNode is a local-first framework. It is primarily composed of:
 ## How does it compare to Yjs?
 
 <div id="comparison-table">
-
-| Feature                 | DocNode Core        | Yjs                                                      |
-| ----------------------- | ------------------- | -------------------------------------------------------- |
-| Type                    | ID-based OT         | CRDT                                                     |
-| Sync / Backend solution | DocNode Sync        | Hocuspocus, Y-Sweet                                      |
-| Pricing                 | Free                | Free                                                     |
-| License                 | A Fair Code License | MIT                                                      |
-| Types of nodes          | DocNode             | YMap, YArray, YText, YxmlFragment, YXmlElement, YXmlText |
-| Bundle size (gzip)      | 6.8 kb              | 26.3 kb                                                  |
-| Type-safe node schemas  | ✅                  | ❌                                                       |
-| Move operation          | ✅                  | ❌                                                       |
-| Hard deletes            | ✅                  | ❌                                                       |
-| P2P support             | ❌                  | ✅                                                       |
-| Schema normalization    | ✅                  | ❌                                                       |
-| Automatic batching      | ✅                  | ❌                                                       |
-| Node IDs are public     | ✅                  | ❌                                                       |
-
+  <table>
+    <thead>
+      <tr>
+        <th>Feature</th>
+        <th>DocNode Core</th>
+        <th>Yjs</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>
+          <TypeFeature />
+        </td>
+        <td>ID-based OT</td>
+        <td>CRDT</td>
+      </tr>
+      <tr>
+        <td>
+          <SyncBackendFeature />
+        </td>
+        <td>DocNode Sync</td>
+        <td>Hocuspocus, Y-Sweet</td>
+      </tr>
+      <tr>
+        <td>
+          <PricingFeature />
+        </td>
+        <td>Free</td>
+        <td>Free</td>
+      </tr>
+      <tr>
+        <td>
+          <LicenseFeature />
+        </td>
+        <td>A Fair Code License</td>
+        <td>MIT</td>
+      </tr>
+      <tr>
+        <td>
+          <TypesOfNodesFeature />
+        </td>
+        <td>DocNode</td>
+        <td>YMap, YArray, YText, YxmlFragment, YXmlElement, YXmlText</td>
+      </tr>
+      <tr>
+        <td>
+          <BundleSizeFeature />
+        </td>
+        <td>6.8 kb</td>
+        <td>26.3 kb</td>
+      </tr>
+      <tr>
+        <td>
+          <TypeSafeSchemasFeature />
+        </td>
+        <td>✅</td>
+        <td>❌</td>
+      </tr>
+      <tr>
+        <td>
+          <MoveOperationFeature />
+        </td>
+        <td>✅</td>
+        <td>❌</td>
+      </tr>
+      <tr>
+        <td>
+          <HardDeletesFeature />
+        </td>
+        <td>✅</td>
+        <td>❌</td>
+      </tr>
+      <tr>
+        <td>
+          <P2PSupportFeature />
+        </td>
+        <td>❌</td>
+        <td>✅</td>
+      </tr>
+      <tr>
+        <td>
+          <SchemaNormalizationFeature />
+        </td>
+        <td>✅</td>
+        <td>❌</td>
+      </tr>
+      <tr>
+        <td>
+          <AutomaticBatchingFeature />
+        </td>
+        <td>✅</td>
+        <td>❌</td>
+      </tr>
+      <tr>
+        <td>
+          <NodeIDsPublicFeature />
+        </td>
+        <td>✅</td>
+        <td>❌</td>
+      </tr>
+    </tbody>
+  </table>
 </div>
 
 ## Why another CRDT / OT library?
