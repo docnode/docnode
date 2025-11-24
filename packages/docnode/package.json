@@ -1,6 +1,6 @@
 {
   "name": "docnode",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "license": "SEE LICENSE IN LICENSE.md",
   "description": "A type-safe, fast, ID-based Operational Transformation (OT) framework.",
   "type": "module",
