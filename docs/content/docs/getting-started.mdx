@@ -53,7 +53,7 @@ const FileNode = defineNode({
   state: {
     name: string(""),
     extension: string(""),
-    updatedAt: date(new Date()),
+    updatedAt: date(),
   },
 });
 
@@ -77,7 +77,7 @@ const TodoItemNode = defineNode({
     title: string(""),
     description: string(""),
     completed: boolean(false),
-    dueDate: date(new Date()),
+    dueDate: date(),
   },
 });
 
