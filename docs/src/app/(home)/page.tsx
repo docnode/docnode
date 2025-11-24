@@ -6,7 +6,7 @@ const Index = () => {
     "CRDT and OT modes",
     "Move operation",
     "Enforce complex structures",
-    "Arbitrary and type-safe data structures",
+    "Type-safe node schemas",
     "Nodes with exposed ID",
     "Undo manager",
   ];
@@ -26,7 +26,7 @@ const Index = () => {
         <div className="container mx-auto text-center">
           <h1 className="text-foreground animate-fade-in mb-8 text-5xl font-bold md:text-7xl">
             Build
-            <span className="bg-gradient-to-r from-green-600 to-green-400 bg-clip-text text-transparent">
+            <span className="bg-linear-to-r from-green-600 to-green-400 bg-clip-text text-transparent">
               {" "}
               local-first{" "}
             </span>
