@@ -3,6 +3,17 @@
   "license": "SEE LICENSE IN LICENSE.md",
   "private": true,
   "type": "module",
+  "homepage": "https://docnode.dev",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/docnode/docnode.git",
+    "directory": "packages/docnode-sync"
+  },
+  "files": [
+    "dist",
+    "LICENSE.md",
+    "README.md"
+  ],
   "scripts": {
     "dev": "concurrently \"tsc -p tsconfig.build.json --watch\" \"tsx watch --include ./worker ./worker/bundle.ts\"",
     "build": "tsc -p tsconfig.build.json && node --experimental-strip-types ./worker/bundle.ts",

@@ -4,6 +4,12 @@
   "license": "SEE LICENSE IN LICENSE.md",
   "description": "A type-safe, fast, ID-based Operational Transformation (OT) framework.",
   "type": "module",
+  "homepage": "https://docnode.dev",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/docnode/docnode.git",
+    "directory": "packages/docnode"
+  },
   "scripts": {
     "dev": "tsc -p tsconfig.build.json --watch",
     "build": "tsc -p tsconfig.build.json",
@@ -12,7 +18,8 @@
   },
   "files": [
     "dist",
-    "LICENSE.md"
+    "LICENSE.md",
+    "README.md"
   ],
   "exports": {
     ".": {

@@ -3,6 +3,11 @@
   "private": true,
   "license": "SEE LICENSE IN LICENSE.md",
   "type": "module",
+  "homepage": "https://docnode.dev",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/docnode/docnode.git"
+  },
   "scripts": {
     "build": "turbo build",
     "dev": "lsof -ti:3000,8081 | xargs kill -9; turbo dev",
