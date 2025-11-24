@@ -12,11 +12,33 @@ DocNode is a local-first framework. It is primarily composed of:
    tabs and clients in real time, both locally and in a central database. It supports authentication,
    conflict resolution, multiplexing, history version, and more.
 
+## How does it compare to Yjs?
+
+<div id="comparison-table">
+
+| Feature                 | DocNode Core        | Yjs                                                      |
+| ----------------------- | ------------------- | -------------------------------------------------------- |
+| Type                    | ID-based OT         | CRDT                                                     |
+| Sync / Backend solution | DocNode Sync        | Hocuspocus, Y-Sweet                                      |
+| Pricing                 | Free                | Free                                                     |
+| License                 | A Fair Code License | MIT                                                      |
+| Types of nodes          | DocNode             | YMap, YArray, YText, YxmlFragment, YXmlElement, YXmlText |
+| Bundle size (gzip)      | 6.8 kb              | 26.3 kb                                                  |
+| Type-safe node schemas  | ✅                  | ❌                                                       |
+| Move operation          | ✅                  | ❌                                                       |
+| Hard deletes            | ✅                  | ❌                                                       |
+| P2P support             | ❌                  | ✅                                                       |
+| Schema normalization    | ✅                  | ❌                                                       |
+| Automatic batching      | ✅                  | ❌                                                       |
+| Node IDs are public     | ✅                  | ❌                                                       |
+
+</div>
+
 ## Why another CRDT / OT library?
 
+- **Operational Transformation (OT)**: DocNode is the only actively maintained OT framework. Since it relies on a server, documents avoid soft-deletes and tombstones like CRDTs, keeping them compact. A CRDT mode is planned for scenarios requiring P2P collaboration.
 - **Type-safety**: TypeScript is a first-class citizen. You define the shape of your nodes, and DocNode ensures correct parsing and validation.
 - **Performance**: DocNode is incredibly fast. Updates are batched automatically, there's no double-buffering/virtual DOM, the event system is designed for fine-grained updates, and serialization is extremely small.
-- **Operational Transformation (OT)**: DocNode is the only actively maintained OT framework. Since it relies on a server, documents avoid soft-deletes and tombstones like CRDTs, keeping them compact. A CRDT mode is planned for scenarios requiring P2P collaboration.
 - **Simplicity**: You don't need to worry about which data type to use, since there's only one (DocNode). This makes modeling your document a near-obvious task.
 - **API Design**: The API has gone through two years of iteration and refinement. Get ready for many aha moments.
 - **Composability**: DocNode is designed from the ground up to support independent extensions and customizations of documents, nodes, and features without conflicts.

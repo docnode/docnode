@@ -140,6 +140,10 @@
   #toc-title {
     @apply hidden!;
   }
+
+  :where(table):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
+    background: unset !important;
+  }
 }
 
 /* fumadocs variables */
@@ -151,4 +155,13 @@ The ones that didn't have tabs looked bad. */
 
 .dark {
   --color-fd-card: var(--color-fd-secondary);
+}
+
+#comparison-table {
+  max-width: 600px;
+}
+
+#comparison-table table td,
+#comparison-table table th {
+  max-width: 50px;
 }
