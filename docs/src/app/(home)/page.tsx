@@ -24,7 +24,7 @@ const Index = () => {
     <div className="bg-background gradient-mesh min-h-screen">
       <section className="px-6 pb-20 pt-32">
         <div className="container mx-auto text-center">
-          <h1 className="text-foreground animate-fade-in mb-8 text-5xl font-bold md:text-7xl">
+          <h1 className="text-foreground animate-fade-in mb-4 text-5xl font-bold md:text-7xl">
             Build
             <span className="bg-linear-to-r from-green-600 to-green-400 bg-clip-text text-transparent">
               {" "}
@@ -32,6 +32,10 @@ const Index = () => {
             </span>
             apps easily
           </h1>
+
+          <p className="mb-8 text-lg text-slate-300 md:text-xl">
+            Real-time collaborative documents with automatic conflict resolution
+          </p>
 
           <Link
             href="/docs"
