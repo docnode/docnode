@@ -1,0 +1,121 @@
+---
+title: Text Conflicts
+description: Text conflict resolution has become so complex that it's often treated as a separate issue. But perhaps the simplest solution is also the best for users.
+---
+
+## Introduction
+
+Every collaborative document must decide at what level of granularity it wants to resolve conflicts arising from concurrency.
+
+<div className="max-w-[400px]">
+
+| App           | Conflict-resolution Granularity <br/> or LWW scope |
+| ------------- | -------------------------------------------------- |
+| Google Docs   | Character                                          |
+| Google Sheets | Cell                                               |
+| Notion        | Block                                              |
+| Obsidian      | Document                                           |
+
+{/* Add screenshots illustrating Sheets, Docs and Notion. */}
+
+</div>
+
+If two users edit the same document at the same time and in the **same spot**, one of them has to win (usually LWW), and the other user’s changes get dropped.
+
+But what exactly counts as the “same spot”? In Obsidian it’s basically anywhere in the document, in Notion it’s the block level (like a paragraph), and in Google Docs it’s down to the character. Curiously, the Google team didn’t make the same choice in Sheets, where conflicts are resolved at the cell level.
+
+I’ll set Obsidian’s document-level approach aside, because I think we can agree it’s not really “collaborative”.
+
+In this article, I will explain three problems with character-level conflict resolution and why I believe resolving conflicts at the text-node-level is preferable. After that, I will explain how to achieve character-level conflict resolution in DocNode if anyone still wishes to do so.
+
+## Problems with character-level conflict resolution
+
+### 1. It has a high cost
+
+In DocNode, conflicts are resolved at the node state level (not the entire node!). Let's consider the following example:
+
+```ts
+import { defineNode, string, boolean } from "docnode";
+
+const TextNode = defineNode({
+  type: "text",
+  state: {
+    text: string(""),
+    bold: boolean(false),
+    italic: boolean(false),
+    underline: boolean(false),
+  },
+});
+```
+
+If two users modify the state `text` at the same time, one of the two operations will win.
+
+How do other CRDTs achieve more granular, character-level conflict resolution?
+
+Under the hood, it's like they use a node for each letter! This can be optimized with run-length encoding, which means that as the user types from left to right or pastes a block of text, it's compressed into a single node.
+
+But every time someone changes the cursor position and types, they're creating new nodes. You don't usually see these "nodes" because they're hidden in the API and combined into a text supernode (for example, YText in Yjs).
+
+Does it work? Yes. It is the most elegant or efficient solution? No. I'd say that it gets the job done. I could do the same in DocNode, but I'm not convinced by the idea that the nodes of a document should depend on who inserted them and when, nor do I like to think that in my document there may be many objects with a lot of metadata that only contain one letter. I will explore this and other options for achieving conflict resolution at the character level in the final section of the article.
+
+### 2. It is used only in very exceptional situations
+
+If Joseph Gentle isn’t the person on earth who has spent the most time thinking about text conflict resolution, he’s damn close. In his excellent video series about his new EG-walker CRDT algorithm, [he said something](https://youtu.be/rjbEG7COj7o?si=rbfzh5C7zkegBDJt&t=365) that’s been living rent-free in my head:
+
+> There is a secret which you only really know about if you work on these systems for a long time like I have, and that is that most systems that support collaborative real-time document editing, well, most documents never actually have any collaborative changes.
+> Now I wish I had real numbers for you. I've been told this anecdotally from a friend that used to work at Evernote, I've seen this firsthand when I worked at Lever and we worked on real-time collaborative database systems. But I suspect that it's true of Google Docs and other systems as well, where in reality, most documents are either edited only by one person (I mean, look through your own Google Docs library you'll probably see that's true), or if they are edited by multiple people, then people take turns, in which case you don't need any of these systems.
+
+I'm glad that an authority on the subject confirms what I've long suspected. I call this phenomenon "the funnel of conflicts":
+
+![Funnel of conflicts](./funnel-of-conflicts.png)
+
+The chances of what you see at the very bottom of the funnel happening are extremely low. From my experience, I think the only time in my life I edited the same paragraph at the same time as someone else in Google Docs was back in high school, just joking around with a classmate for a couple of seconds. And it wouldn’t have been a big deal if the characters I typed in the last 100 ms had disappeared in that context (LWW).
+
+I love that there are libraries and academic papers pushing the boundaries of character-level conflict resolution. But in practice, I think we’ve taken it to a point that’s far from pragmatic, adding a ton of metadata to our documents and complexity to our algorithms for something very rare and not worth it.
+
+{/* Automatic conflict resolution has no silver bullet. I’ve seen smart engineers get so spooked by the edge cases that they remove offline editing altogether. I don't think that's the way to go. The market has proven you don’t need a perfect algorithm, just one that’s good enough and, ideally, a solid version history. */}
+
+{/* Perhaps: add the anecdote about the local-first conference I attended? */}
+
+### 3. When used, the output is not always better
+
+Suppose Alice and Bob both start with a document in the same state, which reads: `Good night!`. Then concurrently:
+
+- Alice replaces the word night with evening → `Good evening!`
+- Bob adds `, Mr. Phillips` → `Good night, Mr. Phillips!`
+
+A character-level conflict resolution would result in: `Good evening, Mr. Phillips!`, which seems like a perfectly reasonable output to me.
+
+<Callout type="info">
+  When we talk about concurrent operations, we don't necessarily mean at the
+  same time. If one of the users loses their internet connection, it's as if the
+  operations they synchronize upon reconnection had occurred concurrently.
+</Callout>
+
+However, let's consider an initial document that contains a typo, for example: `Hello wrld!`. Alice and Bob notice and concurrently fix it. Character-level conflict resolution would result in the letter 'o' appearing twice: `Hello woorld!`. A simple LWW at the text node level would have worked better here.
+
+If you think about it, the most likely reason two users might simultaneously write in the same place is because they're trying to fix the same error. It doesn't have to be a typo; it could be incorrect information or poor wording. In these cases, LWW prevents the fix from appearing twice during synchronization.
+
+Antidote DB coined a very interesting term a few years ago: "Just right consistency." [They illustrate the concept](https://www.youtube.com/watch?v=oWUNCsFy-r0) with a concert that needs to sell tickets. When tickets first go on sale and there are many available, they can prioritize "eventual consistency" in a distributed system to respond more quickly to user purchases. However, as tickets run out, the system must coordinate more slowly and strictly to guarantee "strong consistency" (that no more tickets are sold than are available).
+
+I see a certain analogy with conflict resolution. If two users simultaneously modify distant paragraphs of a document, we don't want to synchronize using a LWW on the entire document like Obsidian does, discarding one user's changes, but rather preserve both users' changes.
+
+However, when the changes start to happen closer (in the same paragraph or even the same word), we will probably want to choose one change and discard the other.
+
+## Still want it at a character level?
+
+DocNode currently has no ergonomic API for character level conflict resolution. Maybe the arguments I laid out convinced you that it is not a great idea. But if not, and you still want to go down that path, here are a few approaches I’ve considered that could make character level resolution possible in DocNode:
+
+1. **Character or subnode splitting**
+
+   Break a text node into smaller nodes. Each node could be a single character, or a chunk formed by natural editing boundaries, like continuous typing or paste actions. This is the solution used by CRDTs like Yjs.
+
+2. **Differential synchronization**
+
+   Think git style diffs. The downside when applied to an entire document is that the diff algorithm can produce incorrect or unnecessarily large diffs, and it requires sending the whole document over the wire on every change. Limited to a single text node, though, those issues evaporate. Each node stores its previous and current state, and the server commits the result. Yes, it duplicates text, but it’s still leaner than CRDT nodes stuffed with multiple IDs for siblings and ordering.
+
+3. **Operation log per text node**
+
+   A text node becomes a log of edits. Compress them by session (which is part of the node ID), sort them deterministically, and you have a compact state that remains consistent across peers.
+
+I’m open to implementing any of these approaches in DocNode if there’s demand and funding. In any case, it would be a new [state definition](/docs/nodes#node-state), and therefore opt-in. Reach out if you're interested!
