@@ -17,8 +17,10 @@ export default function Article({
   return (
     <article
       className={[
-        "wysiwyg dark:wysiwyg-invert sm:wysiwyg-lg md:wysiwyg-xl mx-auto my-24 px-2 pb-40",
-        "wysiwyg-blockquote:font-normal wysiwyg-blockquote:not-italic wysiwyg-blockquote:text-default-muted",
+        "mx-auto my-24 max-w-[65ch] px-2 pb-40",
+        "prose text-xl",
+        // dark:prose-invert sm:prose-lg md:prose-xl",
+        "prose-blockquote:font-normal prose-blockquote:not-italic prose-blockquote:text-default-muted",
       ].join(" ")}
     >
       {/* https://stackoverflow.com/a/7295013/10476393 */}

@@ -5,9 +5,6 @@ import type { BaseLayoutProps } from "fumadocs-ui/layouts/shared";
 
 const options: BaseLayoutProps = {
   ...baseOptions,
-  themeSwitch: {
-    enabled: false,
-  },
   links: [
     ...(baseOptions.links ?? []),
     {
@@ -25,7 +22,7 @@ const options: BaseLayoutProps = {
 
 export default function Layout({ children }: LayoutProps<"/">) {
   return (
-    <RootProvider theme={{ ...baseOptions, forcedTheme: "dark" }}>
+    <RootProvider theme={{ ...baseOptions }}>
       <HomeLayout {...options}>{children}</HomeLayout>
     </RootProvider>
   );
