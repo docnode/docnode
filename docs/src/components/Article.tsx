@@ -18,7 +18,7 @@ export default function Article({
     <article
       className={[
         "mx-auto my-24 max-w-[65ch] px-2 pb-40",
-        "prose text-xl",
+        "prose lg:text-xl",
         // dark:prose-invert sm:prose-lg md:prose-xl",
         "prose-blockquote:font-normal prose-blockquote:not-italic prose-blockquote:text-default-muted",
       ].join(" ")}

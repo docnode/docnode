@@ -3,10 +3,7 @@ title: Persistence
 description: Strategies to persist and sync a Doc
 ---
 
-<Callout type="warning">
-  This page is a work in progress. It may contain outdated or incorrect
-  information.
-</Callout>
+import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
 
 This page covers practical ways to persist a Doc on a server. DocNode uses an OT-style model: all clients must apply operations in the same order to converge, or the server can send back a full document snapshot.
 
@@ -40,7 +37,19 @@ Cons
   `const docId = jsonDoc[0]`.
 </Callout>
 
-## Strategy 2: Send operations with a single‑flight queue
+## Strategy 2: Send operations (DIY)
+
+Roll your own sync layer. The complexity is entirely up to you. A basic setup posts operations to the server, while an advanced one adds authentication, debouncing, retry policies, multi tab synchronization, version history, local storage, and other niceties.
+
+The only requirement is that all clients must apply the operations in the same order. If a client connects and the server no longer holds the missing operations, the client must pull the current document state first, then start consuming live operations.
+
+<Accordions type="single" collapsible>
+  <Accordion title="Barebones example" id="example">
+    
+<Callout type="warning">
+  This example is a work in progress. It may contain outdated or incorrect
+  information.
+</Callout>
 
 The `change` event includes operations in a compact JSON form. Use a small queue to avoid losing operations while a save is in flight.
 
@@ -110,12 +119,15 @@ app.post("/save", async (req, res) => {
   const stored = await getJsonDoc(docId);
   const doc = Doc.fromJSON(docConfig, stored);
   for (const ops of operations) doc.applyOperations(ops);
-
+  doc.forceCommit();
   const saved = doc.toJSON();
   await saveJsonDoc(docId, saved);
   res.json(saved);
 });
 ```
+
+  </Accordion>
+</Accordions>
 
 Pros
 
@@ -128,7 +140,7 @@ Cons
 
 ---
 
-## DocNode Sync (recommended)
+## Strategy 3: DocNode Sync (recommended)
 
 DocNode Sync provides a batteries‑included, local‑first client/server that synchronizes documents in real time:
 
@@ -138,5 +150,5 @@ DocNode Sync provides a batteries‑included, local‑first client/server that s
 
 It can adapt strategy by context:
 
-- Single writer: buffer and squash on the server
-- Multiple writers: apply eagerly and propagate without conflicts
+- Single writer: send debounced operations and squash on the server only when needed (reads).
+- Multiple writers: send immediately and broadcast to all connected clients.
