@@ -1,5 +1,26 @@
 import React from "react";
 import Link from "next/link";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "DocNode - Build local-first apps easily",
+  description:
+    "Real-time collaborative documents with automatic conflict resolution",
+  openGraph: {
+    title: "DocNode - Build local-first apps easily",
+    description:
+      "Real-time collaborative documents with automatic conflict resolution",
+    images: ["/og-logo.png"],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "DocNode - Build local-first apps easily",
+    description:
+      "Real-time collaborative documents with automatic conflict resolution",
+    images: ["/og-logo.png"],
+  },
+};
 
 const Index = () => {
   const coreFeatures = [
