@@ -1,16 +1,73 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import {
   HoverCard,
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
-export function TypeFeature() {
+// Hybrid component for mobile/desktop support
+// Mobile devices don't have hover, so we use Popover (click-based) instead of HoverCard
+// See: https://github.com/shadcn-ui/ui/issues/2402
+function ClickableHoverCard({
+  children,
+  content,
+}: {
+  children: React.ReactNode;
+  content: React.ReactNode;
+}) {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    // Check if device is mobile/touch-enabled
+    const checkMobile = () => {
+      setIsMobile(
+        "ontouchstart" in window ||
+          navigator.maxTouchPoints > 0 ||
+          window.matchMedia("(max-width: 768px)").matches,
+      );
+    };
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  // Use Popover for mobile (click-based), HoverCard for desktop (hover-based)
+  const sharedClassName =
+    "inline cursor-help border-none bg-transparent p-0 font-inherit text-inherit text-left underline decoration-dotted";
+
+  if (isMobile) {
+    return (
+      <Popover>
+        <PopoverTrigger asChild>
+          <button className={sharedClassName}>{children}</button>
+        </PopoverTrigger>
+        <PopoverContent className="w-80">{content}</PopoverContent>
+      </Popover>
+    );
+  }
+
   return (
     <HoverCard openDelay={200} closeDelay={100}>
       <HoverCardTrigger asChild>
-        <span className="cursor-help underline decoration-dotted">Type</span>
+        <span className={sharedClassName}>{children}</span>
       </HoverCardTrigger>
-      <HoverCardContent className="w-80">
+      <HoverCardContent className="w-80">{content}</HoverCardContent>
+    </HoverCard>
+  );
+}
+
+export function TypeFeature() {
+  return (
+    <ClickableHoverCard
+      content={
         <div className="prose prose-sm prose-a:text-inherit space-y-2">
           <h4 className="text-sm font-semibold">ID-based OT vs CRDT</h4>
           <p className="text-sm">
@@ -31,20 +88,17 @@ export function TypeFeature() {
             .
           </p>
         </div>
-      </HoverCardContent>
-    </HoverCard>
+      }
+    >
+      Type
+    </ClickableHoverCard>
   );
 }
 
 export function SyncBackendFeature() {
   return (
-    <HoverCard openDelay={200} closeDelay={100}>
-      <HoverCardTrigger asChild>
-        <span className="cursor-help underline decoration-dotted">
-          Sync / Backend solution
-        </span>
-      </HoverCardTrigger>
-      <HoverCardContent className="w-80">
+    <ClickableHoverCard
+      content={
         <div className="prose prose-sm prose-a:text-inherit space-y-2">
           <h4 className="text-sm font-semibold">Backend Infrastructure</h4>
           <p className="text-sm">
@@ -66,18 +120,17 @@ export function SyncBackendFeature() {
             are to Yjs.
           </p>
         </div>
-      </HoverCardContent>
-    </HoverCard>
+      }
+    >
+      Sync / Backend solution
+    </ClickableHoverCard>
   );
 }
 
 export function PricingFeature() {
   return (
-    <HoverCard openDelay={200} closeDelay={100}>
-      <HoverCardTrigger asChild>
-        <span className="cursor-help underline decoration-dotted">Pricing</span>
-      </HoverCardTrigger>
-      <HoverCardContent className="w-80">
+    <ClickableHoverCard
+      content={
         <div className="prose prose-sm prose-a:text-inherit space-y-2">
           <p className="text-sm">
             Read our{" "}
@@ -87,18 +140,17 @@ export function PricingFeature() {
             .
           </p>
         </div>
-      </HoverCardContent>
-    </HoverCard>
+      }
+    >
+      Pricing
+    </ClickableHoverCard>
   );
 }
 
 export function LicenseFeature() {
   return (
-    <HoverCard openDelay={200} closeDelay={100}>
-      <HoverCardTrigger asChild>
-        <span className="cursor-help underline decoration-dotted">License</span>
-      </HoverCardTrigger>
-      <HoverCardContent className="w-80">
+    <ClickableHoverCard
+      content={
         <div className="prose prose-sm prose-a:text-inherit space-y-2">
           <p className="text-sm">
             Read our{" "}
@@ -108,20 +160,17 @@ export function LicenseFeature() {
             .
           </p>
         </div>
-      </HoverCardContent>
-    </HoverCard>
+      }
+    >
+      License
+    </ClickableHoverCard>
   );
 }
 
 export function TypesOfNodesFeature() {
   return (
-    <HoverCard openDelay={200} closeDelay={100}>
-      <HoverCardTrigger asChild>
-        <span className="cursor-help underline decoration-dotted">
-          Types of nodes
-        </span>
-      </HoverCardTrigger>
-      <HoverCardContent className="w-80">
+    <ClickableHoverCard
+      content={
         <div className="prose prose-sm prose-a:text-inherit space-y-2">
           <h4 className="text-sm font-semibold">Data Structure Types</h4>
           <p className="text-sm">
@@ -136,20 +185,17 @@ export function TypesOfNodesFeature() {
             .
           </p>
         </div>
-      </HoverCardContent>
-    </HoverCard>
+      }
+    >
+      Types of nodes
+    </ClickableHoverCard>
   );
 }
 
 export function BundleSizeFeature() {
   return (
-    <HoverCard openDelay={200} closeDelay={100}>
-      <HoverCardTrigger asChild>
-        <span className="cursor-help underline decoration-dotted">
-          Bundle size (gzip)
-        </span>
-      </HoverCardTrigger>
-      <HoverCardContent className="w-80">
+    <ClickableHoverCard
+      content={
         <div className="prose prose-sm prose-a:text-inherit space-y-2">
           <h4 className="text-sm font-semibold">Client-Side Package Size</h4>
           <p className="text-sm">
@@ -172,20 +218,17 @@ export function BundleSizeFeature() {
             here.
           </p>
         </div>
-      </HoverCardContent>
-    </HoverCard>
+      }
+    >
+      Bundle size (gzip)
+    </ClickableHoverCard>
   );
 }
 
 export function TypeSafeSchemasFeature() {
   return (
-    <HoverCard openDelay={200} closeDelay={100}>
-      <HoverCardTrigger asChild>
-        <span className="cursor-help underline decoration-dotted">
-          Type-safe node schemas
-        </span>
-      </HoverCardTrigger>
-      <HoverCardContent className="w-80">
+    <ClickableHoverCard
+      content={
         <div className="prose prose-sm prose-a:text-inherit space-y-2">
           <h4 className="text-sm font-semibold">TypeScript Type Safety</h4>
           <p className="text-sm">
@@ -195,20 +238,17 @@ export function TypeSafeSchemasFeature() {
             serialize to super compact JSON, making your documents even smaller.
           </p>
         </div>
-      </HoverCardContent>
-    </HoverCard>
+      }
+    >
+      Type-safe node schemas
+    </ClickableHoverCard>
   );
 }
 
 export function MoveOperationFeature() {
   return (
-    <HoverCard openDelay={200} closeDelay={100}>
-      <HoverCardTrigger asChild>
-        <span className="cursor-help underline decoration-dotted">
-          Move operation
-        </span>
-      </HoverCardTrigger>
-      <HoverCardContent className="w-80">
+    <ClickableHoverCard
+      content={
         <div className="prose prose-sm prose-a:text-inherit space-y-2">
           <h4 className="text-sm font-semibold">Native Move Support</h4>
           <p className="text-sm">
@@ -219,20 +259,17 @@ export function MoveOperationFeature() {
             problem in the most efficient way possible.
           </p>
         </div>
-      </HoverCardContent>
-    </HoverCard>
+      }
+    >
+      Move operation
+    </ClickableHoverCard>
   );
 }
 
 export function HardDeletesFeature() {
   return (
-    <HoverCard openDelay={200} closeDelay={100}>
-      <HoverCardTrigger asChild>
-        <span className="cursor-help underline decoration-dotted">
-          Hard deletes
-        </span>
-      </HoverCardTrigger>
-      <HoverCardContent className="w-80">
+    <ClickableHoverCard
+      content={
         <div className="prose prose-sm prose-a:text-inherit space-y-2">
           <h4 className="text-sm font-semibold">True Deletion</h4>
           <p className="text-sm">
@@ -242,20 +279,17 @@ export function HardDeletesFeature() {
             server-based approach allows true deletion, keeping documents lean.
           </p>
         </div>
-      </HoverCardContent>
-    </HoverCard>
+      }
+    >
+      Hard deletes
+    </ClickableHoverCard>
   );
 }
 
 export function P2PSupportFeature() {
   return (
-    <HoverCard openDelay={200} closeDelay={100}>
-      <HoverCardTrigger asChild>
-        <span className="cursor-help underline decoration-dotted">
-          P2P support
-        </span>
-      </HoverCardTrigger>
-      <HoverCardContent className="w-80">
+    <ClickableHoverCard
+      content={
         <div className="prose prose-sm prose-a:text-inherit space-y-2">
           <h4 className="text-sm font-semibold">Peer-to-Peer Networking</h4>
           <p className="text-sm">
@@ -269,20 +303,17 @@ export function P2PSupportFeature() {
             .
           </p>
         </div>
-      </HoverCardContent>
-    </HoverCard>
+      }
+    >
+      P2P support
+    </ClickableHoverCard>
   );
 }
 
 export function SchemaNormalizationFeature() {
   return (
-    <HoverCard openDelay={200} closeDelay={100}>
-      <HoverCardTrigger asChild>
-        <span className="cursor-help underline decoration-dotted">
-          Schema normalization
-        </span>
-      </HoverCardTrigger>
-      <HoverCardContent className="w-80">
+    <ClickableHoverCard
+      content={
         <div className="prose prose-sm prose-a:text-inherit space-y-2">
           <h4 className="text-sm font-semibold">
             Automatic Schema Enforcement
@@ -300,20 +331,17 @@ export function SchemaNormalizationFeature() {
             .
           </p>
         </div>
-      </HoverCardContent>
-    </HoverCard>
+      }
+    >
+      Schema normalization
+    </ClickableHoverCard>
   );
 }
 
 export function AutomaticBatchingFeature() {
   return (
-    <HoverCard openDelay={200} closeDelay={100}>
-      <HoverCardTrigger asChild>
-        <span className="cursor-help underline decoration-dotted">
-          Automatic batching
-        </span>
-      </HoverCardTrigger>
-      <HoverCardContent className="w-80">
+    <ClickableHoverCard
+      content={
         <div className="prose prose-sm prose-a:text-inherit space-y-2">
           <h4 className="text-sm font-semibold">Smart Operation Batching</h4>
           <p className="text-sm">
@@ -325,20 +353,17 @@ export function AutomaticBatchingFeature() {
             boosting performance. No manual transaction management needed.
           </p>
         </div>
-      </HoverCardContent>
-    </HoverCard>
+      }
+    >
+      Automatic batching
+    </ClickableHoverCard>
   );
 }
 
 export function NodeIDsPublicFeature() {
   return (
-    <HoverCard openDelay={200} closeDelay={100}>
-      <HoverCardTrigger asChild>
-        <span className="cursor-help underline decoration-dotted">
-          Node IDs are public
-        </span>
-      </HoverCardTrigger>
-      <HoverCardContent className="w-80">
+    <ClickableHoverCard
+      content={
         <div className="prose prose-sm prose-a:text-inherit space-y-2">
           <h4 className="text-sm font-semibold">Stable Public IDs</h4>
           <p className="text-sm">
@@ -347,20 +372,17 @@ export function NodeIDsPublicFeature() {
             internal identifiers not meant for external use.
           </p>
         </div>
-      </HoverCardContent>
-    </HoverCard>
+      }
+    >
+      Node IDs are public
+    </ClickableHoverCard>
   );
 }
 
 export function NoInsertsMetadataFeature() {
   return (
-    <HoverCard openDelay={200} closeDelay={100}>
-      <HoverCardTrigger asChild>
-        <span className="cursor-help underline decoration-dotted">
-          Metadata-free inserts
-        </span>
-      </HoverCardTrigger>
-      <HoverCardContent className="w-80">
+    <ClickableHoverCard
+      content={
         <div className="prose prose-sm prose-a:text-inherit space-y-2">
           <h4 className="text-sm font-semibold">Clean Insert Operations</h4>
           <p className="text-sm">
@@ -370,7 +392,9 @@ export function NoInsertsMetadataFeature() {
             (OriginLeft and OriginRight in Yjs).
           </p>
         </div>
-      </HoverCardContent>
-    </HoverCard>
+      }
+    >
+      Metadata-free inserts
+    </ClickableHoverCard>
   );
 }
