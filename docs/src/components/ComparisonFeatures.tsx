@@ -351,3 +351,26 @@ export function NodeIDsPublicFeature() {
     </HoverCard>
   );
 }
+
+export function NoInsertsMetadataFeature() {
+  return (
+    <HoverCard openDelay={200} closeDelay={100}>
+      <HoverCardTrigger asChild>
+        <span className="cursor-help underline decoration-dotted">
+          Metadata-free inserts
+        </span>
+      </HoverCardTrigger>
+      <HoverCardContent className="w-80">
+        <div className="prose prose-sm prose-a:text-inherit space-y-2">
+          <h4 className="text-sm font-semibold">Clean Insert Operations</h4>
+          <p className="text-sm">
+            CRDTs require metadata not only when deleting (soft deletes /
+            tombstones) or moving, but also when inserting. Nodes must preserve
+            information like which nodes were adjacent at insertion time
+            (OriginLeft and OriginRight in Yjs).
+          </p>
+        </div>
+      </HoverCardContent>
+    </HoverCard>
+  );
+}

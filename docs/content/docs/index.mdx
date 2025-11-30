@@ -16,6 +16,7 @@ import {
   SchemaNormalizationFeature,
   AutomaticBatchingFeature,
   NodeIDsPublicFeature,
+  NoInsertsMetadataFeature,
 } from "@/components/ComparisonFeatures";
 
 ## What is DocNode
@@ -99,6 +100,13 @@ DocNode is a local-first framework. It is primarily composed of:
       <tr>
         <td>
           <HardDeletesFeature />
+        </td>
+        <td>✅</td>
+        <td>❌</td>
+      </tr>
+      <tr>
+        <td>
+          <NoInsertsMetadataFeature />
         </td>
         <td>✅</td>
         <td>❌</td>
