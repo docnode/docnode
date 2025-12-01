@@ -78,14 +78,7 @@ export function TypeFeature() {
             <strong>ID-based OT</strong>, however, can apply its operations
             directly (O(1)), without needing to transform them. It's basically a
             CRDT, but without P2P support in exchange for less complexity and
-            metadata.{" "}
-            <a
-              href="/docs/ot-vs-crdt"
-              className="text-blue-600 hover:underline"
-            >
-              See more in OT vs CRDT
-            </a>
-            .
+            metadata.
           </p>
         </div>
       }

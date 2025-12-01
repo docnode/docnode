@@ -165,3 +165,10 @@ The ones that didn't have tabs looked bad. */
 #comparison-table table th {
   max-width: 50px;
 }
+
+/* Necessary to prevent CodeBlocks from breaking the mobile breakpoint.
+Especially important in small viewports and/or with long lines of code.
+Without this, the scroll bar will appear across the entire page. */
+article figure.not-prose {
+  max-width: calc(100vw - 3rem) !important;
+}

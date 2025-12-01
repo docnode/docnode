@@ -17,7 +17,7 @@ export default function Article({
   return (
     <article
       className={[
-        "mx-auto my-24 max-w-[65ch] px-2 pb-40",
+        "mx-auto my-24 max-w-[65ch] px-4 pb-40",
         "prose lg:text-xl",
         // dark:prose-invert sm:prose-lg md:prose-xl",
         "prose-blockquote:font-normal prose-blockquote:not-italic prose-blockquote:text-default-muted",
