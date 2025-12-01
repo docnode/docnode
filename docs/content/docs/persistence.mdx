@@ -29,8 +29,7 @@ Pros
 Cons
 
 - Sends the entire document every time. The cost of data over the wire can be significant, especially if the document is large.
-- No concurrency handling (the server must decide which writer wins)
-  {/* - ALT: If two clients edit the same document at the same time, the server will have to discard the operations of one of them. This may not be a problem if, for example, the documents don't require collaboration between users or devices (local-only). */}
+- If two clients edit the same document at the same time, the server will have to discard the operations of one of them.
 
 <Callout type="info">
   The root node ID is also the document ID. You can read it from the JSON as
@@ -131,12 +130,12 @@ app.post("/save", async (req, res) => {
 
 Pros
 
-- Efficient over the wire, especially for large documents
-- Robust to in‑flight saves: no dropped operations
+- It supports concurrency handling and conflict resolution, allowing real-time or even offline-first collaboration.
+- Less data over the wire: you only send the server super-compressed descriptions of what changed (the operations).
 
 Cons
 
-- The server returns the entire document on each request (this can be resolved)
+- Complex setup, especially for implementing features like those mentioned above: authentication, debouncing, retry policies, multi tab synchronization, version history, local storage, etc.
 
 ---
 
@@ -152,3 +151,13 @@ It can adapt strategy by context:
 
 - Single writer: send debounced operations and squash on the server only when needed (reads).
 - Multiple writers: send immediately and broadcast to all connected clients.
+
+Pros
+
+- The same as strategy 2, plus:
+- Batteries-included and battle-tested solution.
+- You support this project.
+
+Cons
+
+- Just an affordable and reasonable paid license!
