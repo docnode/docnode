@@ -336,7 +336,7 @@ export function AISearchTrigger() {
       <Presence present={open}>
         <div
           className={cn(
-            "bg-fd-popover text-fd-popover-foreground fixed inset-y-2 z-30 flex flex-col rounded-2xl border p-2 shadow-lg max-sm:inset-x-2 sm:end-2 sm:w-[460px]",
+            "bg-fd-popover text-fd-popover-foreground z-100 fixed inset-y-2 flex flex-col rounded-2xl border p-2 shadow-lg max-sm:inset-x-2 sm:end-2 sm:w-[460px]",
             open
               ? "animate-[ask-ai-open_300ms]"
               : "animate-[ask-ai-close_300ms]",
