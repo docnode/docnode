@@ -7,9 +7,9 @@
     "clean": "rm -rf .next node_modules .turbo dist tsconfig.build.tsbuildinfo || rmdir /s /q .next node_modules .turbo dist tsconfig.build.tsbuildinfo"
   },
   "dependencies": {
-    "docnode": "workspace:*",
     "@docnode/sync": "workspace:*",
     "@docnode/sync-react": "workspace:*",
+    "docnode": "workspace:*",
     "drizzle-orm": "^0.38.4",
     "lexical": "^0.36.1",
     "postgres": "^3.4.5",

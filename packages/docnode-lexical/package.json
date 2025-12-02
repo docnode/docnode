@@ -14,7 +14,11 @@
     "LICENSE.md",
     "README.md"
   ],
-  "dependencies": {
-    "docnode": "workspace:*"
-  }
+  "exports": {
+    ".": {
+      "types": "./dist/src/exports/index.d.ts",
+      "default": "./dist/src/exports/index.js"
+    }
+  },
+  "dependencies": {}
 }

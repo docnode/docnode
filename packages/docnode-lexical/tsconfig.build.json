@@ -1,0 +1,6 @@
+{
+  "extends": "ultimate-tooling/tsc/build/dom/library-monorepo",
+  "compilerOptions": {
+    "tsBuildInfoFile": "tsconfig.build.tsbuildinfo"
+  }
+}
