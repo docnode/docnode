@@ -1,6 +1,9 @@
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
-import { mergeRegister } from "@lexical/utils";
+import { $createHeadingNode, HeadingNode } from "@lexical/rich-text";
+import { $setBlocksType } from "@lexical/selection";
+import { $getNearestNodeOfType, mergeRegister } from "@lexical/utils";
 import {
+  $createParagraphNode,
   $getSelection,
   $isRangeSelection,
   CAN_REDO_COMMAND,
@@ -12,32 +15,110 @@ import {
   SELECTION_CHANGE_COMMAND,
   UNDO_COMMAND,
 } from "lexical";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  AlignCenter,
+  AlignJustify,
+  AlignLeft,
+  AlignRight,
+  Bold,
+  Heading1,
+  Heading2,
+  Heading3,
+  Italic,
+  Pilcrow,
+  Redo2,
+  Strikethrough,
+  Underline,
+  Undo2,
+} from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+
+type HeadingTag = "h1" | "h2" | "h3";
+type BlockType = "paragraph" | HeadingTag;
 
 function Divider() {
-  return <div className="divider" />;
+  return <div className="mx-1 h-6 w-px bg-zinc-600" />;
+}
+
+interface ToolbarButtonProps {
+  onClick: () => void;
+  disabled?: boolean;
+  isActive?: boolean;
+  ariaLabel: string;
+  children: React.ReactNode;
+}
+
+function ToolbarButton({
+  onClick,
+  disabled,
+  isActive,
+  ariaLabel,
+  children,
+}: ToolbarButtonProps) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={ariaLabel}
+      className={`flex h-8 w-8 items-center justify-center rounded-md transition-all duration-150 ${
+        disabled
+          ? "cursor-not-allowed text-zinc-600"
+          : isActive
+            ? "bg-amber-500/20 text-amber-400 shadow-inner"
+            : "text-zinc-300 hover:bg-zinc-700 hover:text-white"
+      }`}
+    >
+      {children}
+    </button>
+  );
 }
 
 export default function ToolbarPlugin() {
   const [editor] = useLexicalComposerContext();
-  const toolbarRef = useRef(null);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
   const [isBold, setIsBold] = useState(false);
   const [isItalic, setIsItalic] = useState(false);
   const [isUnderline, setIsUnderline] = useState(false);
   const [isStrikethrough, setIsStrikethrough] = useState(false);
+  const [blockType, setBlockType] = useState<BlockType>("paragraph");
 
   const $updateToolbar = useCallback(() => {
     const selection = $getSelection();
     if ($isRangeSelection(selection)) {
-      // Update text format
       setIsBold(selection.hasFormat("bold"));
       setIsItalic(selection.hasFormat("italic"));
       setIsUnderline(selection.hasFormat("underline"));
       setIsStrikethrough(selection.hasFormat("strikethrough"));
+
+      const anchorNode = selection.anchor.getNode();
+      const headingNode = $getNearestNodeOfType(anchorNode, HeadingNode);
+
+      if (headingNode) {
+        setBlockType(headingNode.getTag() as HeadingTag);
+      } else {
+        setBlockType("paragraph");
+      }
     }
   }, []);
+
+  const formatParagraph = () => {
+    editor.update(() => {
+      const selection = $getSelection();
+      if ($isRangeSelection(selection)) {
+        $setBlocksType(selection, () => $createParagraphNode());
+      }
+    });
+  };
+
+  const formatHeading = (headingSize: HeadingTag) => {
+    editor.update(() => {
+      const selection = $getSelection();
+      if ($isRangeSelection(selection)) {
+        $setBlocksType(selection, () => $createHeadingNode(headingSize));
+      }
+    });
+  };
 
   useEffect(() => {
     return mergeRegister(
@@ -51,8 +132,10 @@ export default function ToolbarPlugin() {
       }),
       editor.registerCommand(
         SELECTION_CHANGE_COMMAND,
-        (_payload, _newEditor) => {
-          $updateToolbar();
+        () => {
+          editor.read(() => {
+            $updateToolbar();
+          });
           return false;
         },
         COMMAND_PRIORITY_LOW,
@@ -60,7 +143,7 @@ export default function ToolbarPlugin() {
       editor.registerCommand(
         CAN_UNDO_COMMAND,
         (payload) => {
-          setCanUndo(payload as boolean);
+          setCanUndo(payload);
           return false;
         },
         COMMAND_PRIORITY_LOW,
@@ -68,7 +151,7 @@ export default function ToolbarPlugin() {
       editor.registerCommand(
         CAN_REDO_COMMAND,
         (payload) => {
-          setCanRedo(payload as boolean);
+          setCanRedo(payload);
           return false;
         },
         COMMAND_PRIORITY_LOW,
@@ -77,113 +160,118 @@ export default function ToolbarPlugin() {
   }, [editor, $updateToolbar]);
 
   return (
-    <div className="toolbar flex flex-wrap" ref={toolbarRef}>
-      <button
+    <div className="flex flex-wrap items-center gap-0.5 rounded-t-xl border-b border-zinc-700 bg-zinc-800/80 px-2 py-1.5 backdrop-blur-sm">
+      {/* Undo/Redo */}
+      <ToolbarButton
+        onClick={() => editor.dispatchCommand(UNDO_COMMAND, undefined)}
         disabled={!canUndo}
-        onClick={() => {
-          editor.dispatchCommand(UNDO_COMMAND, undefined);
-        }}
-        className="toolbar-item spaced m-1 rounded bg-slate-600 p-1"
-        aria-label="Undo"
+        ariaLabel="Undo"
       >
-        undo
-      </button>
-      <button
+        <Undo2 size={16} />
+      </ToolbarButton>
+      <ToolbarButton
+        onClick={() => editor.dispatchCommand(REDO_COMMAND, undefined)}
         disabled={!canRedo}
-        onClick={() => {
-          editor.dispatchCommand(REDO_COMMAND, undefined);
-        }}
-        className="toolbar-item m-1 rounded bg-slate-600 p-1"
-        aria-label="Redo"
+        ariaLabel="Redo"
       >
-        redo
-      </button>
+        <Redo2 size={16} />
+      </ToolbarButton>
+
       <Divider />
-      <button
-        onClick={() => {
-          editor.dispatchCommand(FORMAT_TEXT_COMMAND, "bold");
-        }}
-        className={
-          "toolbar-item spaced m-1 rounded bg-slate-600 p-1 " +
-          (isBold ? "active" : "")
-        }
-        aria-label="Format Bold"
+
+      {/* Block Type */}
+      <ToolbarButton
+        onClick={formatParagraph}
+        isActive={blockType === "paragraph"}
+        ariaLabel="Paragraph"
       >
-        bold
-      </button>
-      <button
-        onClick={() => {
-          editor.dispatchCommand(FORMAT_TEXT_COMMAND, "italic");
-        }}
-        className={
-          "toolbar-item spaced m-1 rounded bg-slate-600 p-1 " +
-          (isItalic ? "active" : "")
-        }
-        aria-label="Format Italics"
+        <Pilcrow size={16} />
+      </ToolbarButton>
+      <ToolbarButton
+        onClick={() => formatHeading("h1")}
+        isActive={blockType === "h1"}
+        ariaLabel="Heading 1"
       >
-        italic
-      </button>
-      <button
-        onClick={() => {
-          editor.dispatchCommand(FORMAT_TEXT_COMMAND, "underline");
-        }}
-        className={
-          "toolbar-item spaced m-1 rounded bg-slate-600 p-1 " +
-          (isUnderline ? "active" : "")
-        }
-        aria-label="Format Underline"
+        <Heading1 size={16} />
+      </ToolbarButton>
+      <ToolbarButton
+        onClick={() => formatHeading("h2")}
+        isActive={blockType === "h2"}
+        ariaLabel="Heading 2"
       >
-        underline
-      </button>
-      <button
-        onClick={() => {
-          editor.dispatchCommand(FORMAT_TEXT_COMMAND, "strikethrough");
-        }}
-        className={
-          "toolbar-item spaced m-1 rounded bg-slate-600 p-1 " +
-          (isStrikethrough ? "active" : "")
-        }
-        aria-label="Format Strikethrough"
+        <Heading2 size={16} />
+      </ToolbarButton>
+      <ToolbarButton
+        onClick={() => formatHeading("h3")}
+        isActive={blockType === "h3"}
+        ariaLabel="Heading 3"
       >
-        strikethrough
-      </button>
+        <Heading3 size={16} />
+      </ToolbarButton>
+
       <Divider />
-      <button
-        onClick={() => {
-          editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, "left");
-        }}
-        className="toolbar-item spaced m-1 rounded bg-slate-600 p-1"
-        aria-label="Left Align"
+
+      {/* Text Format */}
+      <ToolbarButton
+        onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, "bold")}
+        isActive={isBold}
+        ariaLabel="Bold"
       >
-        left-align
-      </button>
-      <button
-        onClick={() => {
-          editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, "center");
-        }}
-        className="toolbar-item spaced m-1 rounded bg-slate-600 p-1"
-        aria-label="Center Align"
+        <Bold size={16} />
+      </ToolbarButton>
+      <ToolbarButton
+        onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, "italic")}
+        isActive={isItalic}
+        ariaLabel="Italic"
       >
-        center-align
-      </button>
-      <button
-        onClick={() => {
-          editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, "right");
-        }}
-        className="toolbar-item spaced m-1 rounded bg-slate-600 p-1"
-        aria-label="Right Align"
+        <Italic size={16} />
+      </ToolbarButton>
+      <ToolbarButton
+        onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, "underline")}
+        isActive={isUnderline}
+        ariaLabel="Underline"
       >
-        right-align
-      </button>
-      <button
-        onClick={() => {
-          editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, "justify");
-        }}
-        className="toolbar-item m-1 rounded bg-slate-600 p-1"
-        aria-label="Justify Align"
+        <Underline size={16} />
+      </ToolbarButton>
+      <ToolbarButton
+        onClick={() =>
+          editor.dispatchCommand(FORMAT_TEXT_COMMAND, "strikethrough")
+        }
+        isActive={isStrikethrough}
+        ariaLabel="Strikethrough"
       >
-        justify-align
-      </button>{" "}
+        <Strikethrough size={16} />
+      </ToolbarButton>
+
+      <Divider />
+
+      {/* Alignment */}
+      <ToolbarButton
+        onClick={() => editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, "left")}
+        ariaLabel="Align Left"
+      >
+        <AlignLeft size={16} />
+      </ToolbarButton>
+      <ToolbarButton
+        onClick={() => editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, "center")}
+        ariaLabel="Align Center"
+      >
+        <AlignCenter size={16} />
+      </ToolbarButton>
+      <ToolbarButton
+        onClick={() => editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, "right")}
+        ariaLabel="Align Right"
+      >
+        <AlignRight size={16} />
+      </ToolbarButton>
+      <ToolbarButton
+        onClick={() =>
+          editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, "justify")
+        }
+        ariaLabel="Justify"
+      >
+        <AlignJustify size={16} />
+      </ToolbarButton>
     </div>
   );
 }
