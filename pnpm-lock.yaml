@@ -279,7 +279,14 @@ importers:
         specifier: workspace:*
         version: link:../docnode
 
-  packages/docnode-lexical: {}
+  packages/docnode-lexical:
+    dependencies:
+      docnode:
+        specifier: workspace:*
+        version: link:../docnode
+      lexical:
+        specifier: ^0.38.2
+        version: 0.38.2
 
   packages/docnode-sync:
     dependencies:
@@ -342,6 +349,9 @@ importers:
 
   tests:
     dependencies:
+      "@docnode/lexical":
+        specifier: workspace:*
+        version: link:../packages/docnode-lexical
       "@docnode/sync":
         specifier: workspace:*
         version: link:../packages/docnode-sync
