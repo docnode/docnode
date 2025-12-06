@@ -15,7 +15,6 @@ import {
   type LexicalEditor,
   type SerializedLexicalNode,
   type LexicalNode,
-  $getNodeByKey,
   $isElementNode,
 } from "lexical";
 
@@ -27,42 +26,40 @@ export function docToLexical(
   const lexicalKeyToDocNodeId = new Map<string, string>();
   const docNodeIdToLexicalKey = new Map<string, string>();
 
-  if (!doc.root.first) {
-    const rootNode = doc.createNode(LexicalDocNode);
-    rootNode.state.j.set({
-      children: [],
-      direction: null,
-      format: "",
-      indent: 0,
-      type: "root",
-      version: 1,
-    });
-    doc.root.append(rootNode);
-  }
-
   const editor = createEditor(config);
-  editor.update(() => {
-    $getRoot().clear();
-    const iterate = (docnode: DocNode) => {
-      const children: LexicalNode[] = [];
-      docnode.children().forEach((child) => {
-        console.log("child", child);
-        if (!child.is(LexicalDocNode))
-          throw new Error("Expected child to be a LexicalDocNode");
-        const serializedLexicalNode = child.state.j.get();
+  editor.update(
+    () => {
+      const root = $getRoot();
+      root.clear();
 
-        const lexicalNode = $parseSerializedNode(serializedLexicalNode);
-        lexicalKeyToDocNodeId.set(lexicalNode.getKey(), child.id);
-        children.push(lexicalNode);
-      });
-      const lexicalParentKey = docNodeIdToLexicalKey.get(docnode.id);
-      const lexicalParent = lexicalParentKey
-        ? $getNodeByKey(lexicalParentKey)
-        : undefined;
-      if ($isElementNode(lexicalParent)) lexicalParent?.append(...children);
-      iterate(doc.root);
-    };
-  });
+      const processChildren = (
+        parentDocNode: DocNode,
+        parentLexicalNode: LexicalNode,
+      ) => {
+        parentDocNode.children().forEach((child) => {
+          if (!child.is(LexicalDocNode))
+            throw new Error("Expected child to be a LexicalDocNode");
+          const serializedLexicalNode = child.state.j.get();
+
+          const lexicalNode = $parseSerializedNode(serializedLexicalNode);
+          lexicalKeyToDocNodeId.set(lexicalNode.getKey(), child.id);
+          docNodeIdToLexicalKey.set(child.id, lexicalNode.getKey());
+
+          if ($isElementNode(parentLexicalNode)) {
+            parentLexicalNode.append(lexicalNode);
+          }
+
+          // Recursively process children
+          if ($isElementNode(lexicalNode)) {
+            processChildren(child, lexicalNode);
+          }
+        });
+      };
+
+      processChildren(doc.root, root);
+    },
+    { discrete: true },
+  );
 
   return { editor, doc };
 }
