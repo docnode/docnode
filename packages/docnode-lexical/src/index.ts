@@ -1,5 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { defineNode, type DocNode, string, Doc, type JsonDoc } from "docnode";
+import {
+  defineNode,
+  type DocNode,
+  string,
+  Doc,
+  type JsonDoc,
+  defineState,
+} from "docnode";
 import {
   $getRoot,
   $parseSerializedNode,
@@ -20,17 +27,30 @@ export function docToLexical(
   const lexicalKeyToDocNodeId = new Map<string, string>();
   const docNodeIdToLexicalKey = new Map<string, string>();
 
+  if (!doc.root.first) {
+    const rootNode = doc.createNode(LexicalDocNode);
+    rootNode.state.j.set({
+      children: [],
+      direction: null,
+      format: "",
+      indent: 0,
+      type: "root",
+      version: 1,
+    });
+    doc.root.append(rootNode);
+  }
+
   const editor = createEditor(config);
   editor.update(() => {
     $getRoot().clear();
     const iterate = (docnode: DocNode) => {
       const children: LexicalNode[] = [];
       docnode.children().forEach((child) => {
+        console.log("child", child);
         if (!child.is(LexicalDocNode))
           throw new Error("Expected child to be a LexicalDocNode");
-        const serializedLexicalNode = JSON.parse(
-          child.state.j.get(),
-        ) as SerializedLexicalNode;
+        const serializedLexicalNode = child.state.j.get();
+
         const lexicalNode = $parseSerializedNode(serializedLexicalNode);
         lexicalKeyToDocNodeId.set(lexicalNode.getKey(), child.id);
         children.push(lexicalNode);
@@ -50,6 +70,9 @@ export function docToLexical(
 export const LexicalDocNode = defineNode({
   type: "l",
   state: {
-    j: string(""),
+    j: defineState({
+      fromJSON: (json) =>
+        (json ?? {}) as SerializedLexicalNode & { [key: string]: unknown },
+    }),
   },
 });
