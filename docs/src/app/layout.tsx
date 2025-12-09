@@ -13,7 +13,7 @@ export default function Layout({ children }: LayoutProps<"/">) {
           <span className="">
             DocNode is now live! See what the community is saying on{" "}
             <a
-              href="https://news.ycombinator.com/item?id=46124227"
+              href="https://news.ycombinator.com/item?id=46211551"
               className="underline"
             >
               Hacker News
