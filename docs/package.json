@@ -41,7 +41,7 @@
     "hast-util-to-jsx-runtime": "^2.3.6",
     "lexical": "^0.38.2",
     "lucide-react": "^0.526.0",
-    "next": "16.0.1",
+    "next": "16.0.7",
     "nodemailer": "^7.0.10",
     "posthog-js": "^1.275.3",
     "react": "^19.1.0",

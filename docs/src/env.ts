@@ -46,7 +46,7 @@ export const env = createEnv({
    * and only client variables on the client. This saves on bundle size.
    * If you want to always validate, set this to true.
    */
-  skipValidation: process.env.NODE_ENV === "development",
+  skipValidation: !!process.env.CI || process.env.NODE_ENV === "development",
 
   /**
    * Makes it so that empty strings are treated as undefined.
