@@ -1,6 +1,9 @@
 {
   "name": "@docnode/monorepo",
   "private": true,
+  "engines": {
+    "node": ">=22"
+  },
   "license": "SEE LICENSE IN LICENSE.md",
   "type": "module",
   "homepage": "https://docnode.dev",
