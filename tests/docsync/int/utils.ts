@@ -372,13 +372,12 @@ const createClientUtils = async (
     addChildSkippingUndo: (text: string) => {
       if (!cachedDoc) throw new Error("Doc not loaded");
       const doc = cachedDoc;
-      doc.forceCommit(
-        () => {
+      doc.skipUndo(() =>
+        doc.forceCommit(() => {
           const child = doc.createNode(ChildNode);
           child.state.value.set(text);
           doc.root.append(child);
-        },
-        { skipUndo: true },
+        }),
       );
     },
     assertIDBDoc: async (expected?: { doc: string[]; ops: string[] }) => {

@@ -35,7 +35,8 @@ export const DocNodeBinding = (docConfigs: DocConfig[]) => {
     },
     onChange: (doc, cb) => doc.onChange(cb),
     applyOperations: (doc, operations, flags) => {
-      doc.applyOperations(operations, flags);
+      if (flags?.skipUndo) doc.skipUndo(() => doc.applyOperations(operations));
+      else doc.applyOperations(operations);
     },
   });
 };

@@ -84,11 +84,11 @@ describe("setupUndoManager doc undo manager", () => {
       REDO_COMMAND,
       COMMAND_PRIORITY_HIGH,
     );
-    expect(listenerCount(doc)).toBe(1);
+    expect(listenerCount(doc)).toBe(0);
 
     const off1 = setupUndoManager(editor, doc, emptyKeyBinding());
-    // +1 from the built-in undo manager, +1 from CAN_UNDO/REDO dispatcher.
-    expect(listenerCount(doc)).toBe(2);
+    // The binding adds one CAN_UNDO/REDO dispatcher.
+    expect(listenerCount(doc)).toBe(1);
     expect(
       commandListenerCount(editor, UNDO_COMMAND, COMMAND_PRIORITY_HIGH),
     ).toBe(initialUndoHandlerCount + 1);
@@ -102,8 +102,8 @@ describe("setupUndoManager doc undo manager", () => {
     expect(doc.root.first).toBeDefined();
 
     off1();
-    // The CAN_* dispatcher is gone; doc.undoManager's listener stays.
-    expect(listenerCount(doc)).toBe(1);
+    // The CAN_* dispatcher is gone; history has no change listener.
+    expect(listenerCount(doc)).toBe(0);
     expect(
       commandListenerCount(editor, UNDO_COMMAND, COMMAND_PRIORITY_HIGH),
     ).toBe(initialUndoHandlerCount);
@@ -113,7 +113,7 @@ describe("setupUndoManager doc undo manager", () => {
 
     const off2 = setupUndoManager(editor, doc, emptyKeyBinding());
     // Only the CAN_* dispatcher is added.
-    expect(listenerCount(doc)).toBe(2);
+    expect(listenerCount(doc)).toBe(1);
 
     // The history survived the remount → UNDO_COMMAND reverts the doc change
     // through doc.undoManager.
@@ -213,11 +213,10 @@ describe("setupUndoManager doc undo manager", () => {
     const doc = createLexicalDoc({ mergeInterval: 500 });
     const editor = makeEditor();
     const docNode = doc.createNode(LexicalDocNode);
-    doc.forceCommit(
-      () => {
+    doc.skipUndo(() =>
+      doc.forceCommit(() => {
         doc.root.append(docNode);
-      },
-      { skipUndo: true },
+      }),
     );
 
     let textKey = "";

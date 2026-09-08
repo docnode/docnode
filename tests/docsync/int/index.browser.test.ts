@@ -487,3 +487,49 @@ describe("Local-First", () => {
     });
   });
 });
+
+test("mixed skipUndo transaction syncs every mutation offline and preserves identity through undo/redo", async () => {
+  await testWrapper(async ({ reference, otherTab, otherDevice }) => {
+    await reference.loadDoc();
+    await otherTab.loadDoc();
+    await otherDevice.loadDoc();
+    reference.addChildSkippingUndo("Trash");
+    reference.addChildSkippingUndo("Projects");
+    await otherDevice.assertMemoryDoc(["Trash", "Projects"]);
+    reference.disconnect();
+    const doc = reference.doc!;
+    const trash = doc.root.first!;
+    const projects = doc.root.last!;
+    let changes = 0;
+    const off = doc.onChange(() => changes++);
+    const page = doc.skipUndo(() => {
+      reference.addChild("Page");
+      const page = doc.root.last!;
+      page.move(trash, "append");
+      return page;
+    });
+    page.move(projects, "append");
+    doc.forceCommit();
+    expect(changes).toBe(1);
+    off();
+    await expect
+      .poll(() => otherTab.doc?.getNodeById(page.id)?.parent?.id)
+      .toBe(projects.id);
+    reference.connect();
+    await expect
+      .poll(() => otherDevice.doc?.getNodeById(page.id)?.parent?.id)
+      .toBe(projects.id);
+    await otherDevice.assertCanUndo(false);
+    reference.doc!.undoManager.undo();
+    await expect
+      .poll(() => otherDevice.doc?.getNodeById(page.id)?.parent?.id)
+      .toBe(trash.id);
+    reference.doc!.undoManager.redo();
+    await expect
+      .poll(() => otherDevice.doc?.getNodeById(page.id)?.parent?.id)
+      .toBe(projects.id);
+    expect(reference.doc!.getNodeById(page.id)?.toJSON()[2]).toStrictEqual(
+      page.toJSON()[2],
+    );
+  });
+});

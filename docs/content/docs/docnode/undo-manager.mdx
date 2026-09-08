@@ -52,9 +52,50 @@ If `undoManager` is omitted, `maxUndoSteps` defaults to `0`.
 Use `skipUndo` for changes that should not become undoable, such as initial content, imports, or remote operations.
 
 ```ts
-doc.forceCommit(() => seedInitialContent(doc), { skipUndo: true });
-doc.applyOperations(remoteOperations, { skipUndo: true });
+doc.skipUndo(() => seedInitialContent(doc));
+doc.skipUndo(() => doc.applyOperations(remoteOperations));
 ```
+
+`doc.skipUndo(callback)` is synchronous, returns the callback's result, and can
+be nested. It affects only this document. It does not start or commit a
+transaction; subsequent mutations can still belong to the same transaction.
+Promises and async callbacks are unsupported. Do not start asynchronous work
+inside this scope: the wrapper cannot cancel a scheduled continuation.
+
+```ts
+const page = doc.skipUndo(() => {
+  const page = doc.createNode(PageNode);
+  trash.append(page);
+  return page;
+});
+page.move(projects, "append");
+// One transaction. Undo moves the same page back to trash; redo moves it out.
+```
+
+Change events and synchronization still include **all** mutations. Their
+`inverseOperations` revert the complete transaction, including excluded changes.
+The undo manager records only the undoable portions. Aborting a transaction also
+rolls back excluded changes. An excluded-only change does not clear redo.
+The event's `flags.skipUndo` describes a change with no undoable inverse; it
+cannot describe the individual portions of a mixed change.
+
+`onNormalize` mutations remain undoable, even when the triggering mutation was
+excluded. Use `doc.skipUndo` **inside the normalizer** to exclude its corrections.
+Initialization retains its existing exclusion from user history.
+
+Skipping is not protection from later undo: undoing a parent's creation can
+remove children added in an excluded scope. For repeated writes to the same
+field, the first undoable write in each portion captures the value immediately
+before it; earlier undoable writes can still overwrite later excluded values.
+
+### Migration
+
+The flags arguments of `forceCommit` and `applyOperations` have been removed.
+Replace `doc.applyOperations(ops, { skipUndo: true })` with
+`doc.skipUndo(() => doc.applyOperations(ops))`. Replace
+`doc.forceCommit(callback, { skipUndo: true })` with `doc.skipUndo(callback)`,
+or `doc.skipUndo(() => doc.forceCommit(callback))` if a synchronous commit is
+needed. `applyOperations` keeps its own transaction boundaries.
 
 <Callout type="info">
   The first transaction created in the same microtask as a new `Doc` is skipped

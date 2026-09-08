@@ -34,7 +34,8 @@ export const DocNodeBinding = (docConfigs: DocConfig[]) => {
       cb: (ev: { operations: Operations; flags?: TransactionFlags }) => void,
     ) => doc.onChange(cb),
     applyOperations: (doc, operations, flags) => {
-      doc.applyOperations(operations, flags);
+      if (flags?.skipUndo) doc.skipUndo(() => doc.applyOperations(operations));
+      else doc.applyOperations(operations);
     },
     exportHistory: (doc) => doc.undoManager.exportHistory(),
     importHistory: (doc, history) => {
