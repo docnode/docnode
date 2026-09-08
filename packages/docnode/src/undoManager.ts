@@ -41,50 +41,50 @@ export class UndoManager {
     this._doc = doc;
     this._maxUndoSteps = options?.maxUndoSteps ?? 0;
     this._mergeInterval = options?.mergeInterval ?? 500;
-    if (!this.isEnabled) return;
+  }
 
-    this._doc.onChange((event) => {
-      if (event.flags?.skipUndo) return;
-      const item: UndoStackItem = {
-        operations: event.inverseOperations,
-        meta: new Map(),
-      };
-      if (this._txType === "update") {
-        const now = Date.now();
-        const lastItem = this._undoStack.at(-1);
-        if (
-          lastItem &&
-          this._lastUpdate !== undefined &&
-          now - this._lastUpdate < this._mergeInterval
-        ) {
-          lastItem.operations = mergeOperations(
-            item.operations,
-            lastItem.operations,
-          );
-          this._pushHandlers.forEach((h) =>
-            h({ meta: lastItem.meta, type: "undo" }),
-          );
-        } else {
-          if (this._undoStack.length >= this._maxUndoSteps) {
-            this._undoStack.shift();
-          }
-          this._undoStack.push(item);
-          this._pushHandlers.forEach((h) =>
-            h({ meta: item.meta, type: "undo" }),
-          );
-        }
-        this._redoStack = [];
-        this._lastUpdate = now;
-      } else if (this._txType === "undo") {
-        this._redoStack.push(item);
-        this._txType = "update";
-        this._pushHandlers.forEach((h) => h({ meta: item.meta, type: "redo" }));
+  protected _record() {
+    if (!this.isEnabled) return;
+    const operations = this._doc["_undoInverseOperations"];
+    if (
+      !operations[0].length &&
+      !Object.values(operations[1]).some((patch) => Object.keys(patch).length)
+    )
+      return;
+    const item: UndoStackItem = { operations, meta: new Map() };
+    if (this._txType === "update") {
+      const now = Date.now();
+      const lastItem = this._undoStack.at(-1);
+      if (
+        lastItem &&
+        this._lastUpdate !== undefined &&
+        now - this._lastUpdate < this._mergeInterval
+      ) {
+        lastItem.operations = mergeOperations(
+          item.operations,
+          lastItem.operations,
+        );
+        this._pushHandlers.forEach((h) =>
+          h({ meta: lastItem.meta, type: "undo" }),
+        );
       } else {
+        if (this._undoStack.length >= this._maxUndoSteps) {
+          this._undoStack.shift();
+        }
         this._undoStack.push(item);
-        this._txType = "update";
         this._pushHandlers.forEach((h) => h({ meta: item.meta, type: "undo" }));
       }
-    });
+      this._redoStack = [];
+      this._lastUpdate = now;
+    } else if (this._txType === "undo") {
+      this._redoStack.push(item);
+      this._txType = "update";
+      this._pushHandlers.forEach((h) => h({ meta: item.meta, type: "redo" }));
+    } else {
+      this._undoStack.push(item);
+      this._txType = "update";
+      this._pushHandlers.forEach((h) => h({ meta: item.meta, type: "undo" }));
+    }
   }
 
   get isEnabled() {

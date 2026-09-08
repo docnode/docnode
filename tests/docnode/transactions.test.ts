@@ -48,11 +48,10 @@ describe("update", () => {
       flags.push(event.flags);
     });
 
-    doc.forceCommit(
-      () => {
+    doc.skipUndo(() =>
+      doc.forceCommit(() => {
         doc.root.append(...text(doc, "seed"));
-      },
-      { skipUndo: true },
+      }),
     );
 
     expect(flags).toStrictEqual([{ skipUndo: true }]);
@@ -73,11 +72,10 @@ describe("update", () => {
       flags.push(event.flags);
     });
 
-    doc.forceCommit(
-      () => {
+    doc.skipUndo(() =>
+      doc.forceCommit(() => {
         doc.abort();
-      },
-      { skipUndo: true },
+      }),
     );
     doc.root.append(...text(doc, "local"));
     doc.forceCommit();
@@ -95,7 +93,7 @@ describe("update", () => {
 
     doc.forceCommit(() => {
       doc.root.append(...text(doc, "seed"));
-    }, {});
+    });
 
     expect(storedFlags).toStrictEqual([{}]);
     expect(doc.undoManager.canUndo()).toBe(true);
@@ -109,12 +107,11 @@ describe("update", () => {
     });
 
     expect(() =>
-      doc.forceCommit(
-        () => {
+      doc.skipUndo(() =>
+        doc.forceCommit(() => {
           doc.root.append(...text(doc, "seed"));
           throw new Error("boom");
-        },
-        { skipUndo: true },
+        }),
       ),
     ).toThrowError("boom");
 
@@ -127,12 +124,11 @@ describe("update", () => {
     const doc = createTextDocWithUndo(10);
 
     expect(() =>
-      doc.forceCommit(
-        () => {
+      doc.skipUndo(() =>
+        doc.forceCommit(() => {
           doc.root.append(...text(doc, "seed"));
           doc.forceCommit();
-        },
-        { skipUndo: true },
+        }),
       ),
     ).toThrowError("You can't call forceCommit inside a forceCommit callback");
 
@@ -518,7 +514,7 @@ describe("undoManager", () => {
         doc.forceCommit(() => {
           node = doc.createNode(Text);
           doc.root.append(node);
-        }, {});
+        });
         if (!node) throw new Error("Expected seed node to be created");
 
         setNow(1600);
@@ -915,7 +911,7 @@ describe("applyOperations", () => {
     const doc = createTextDocWithUndo();
     const flags = collectFlags(doc, () => {
       doc.root.append(...text(doc, "local"));
-      doc.applyOperations(remoteOperations, { skipUndo: true });
+      doc.skipUndo(() => doc.applyOperations(remoteOperations));
     });
 
     expect(flags).toStrictEqual([{}, { skipUndo: true }]);
@@ -944,7 +940,7 @@ describe("applyOperations", () => {
     const doc = createTextDocWithUndo();
     const undoManager = doc.undoManager;
 
-    doc.applyOperations(remoteOperations, { skipUndo: true });
+    doc.skipUndo(() => doc.applyOperations(remoteOperations));
     expect(undoManager.canUndo()).toBe(false);
 
     doc.root.append(...text(doc, "local"));
@@ -956,7 +952,7 @@ describe("applyOperations", () => {
     const remoteOperations = createRemoteInsertOperations("remote");
     const doc = new Doc({ type: "root", extensions: [TextExtension] });
     const flags = collectFlags(doc, () => {
-      doc.applyOperations(remoteOperations, { skipUndo: true });
+      doc.skipUndo(() => doc.applyOperations(remoteOperations));
       doc.root.append(...text(doc, "local"));
     });
     expect(flags).toStrictEqual([{ skipUndo: true }, {}]);

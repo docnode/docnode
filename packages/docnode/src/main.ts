@@ -556,6 +556,65 @@ export class Doc {
   protected _inverseOperations: ops.Operations = [[], {}];
   protected _transactionFlags: TransactionFlags;
   private _isForceCommitCallback = false;
+  protected _skipUndoDepth = 0;
+  private _undoCapture: ReturnType<typeof ops.createCapture> | undefined;
+  private _undoPortions: ops.Operations[] = [];
+  protected _undoInverseOperations: ops.Operations = [[], {}];
+
+  protected _getUndoCapture() {
+    if (
+      this._skipUndoDepth ||
+      this._transactionFlags?.skipUndo ||
+      !this.undoManager
+    )
+      return;
+    return (this._undoCapture ??= ops.createCapture());
+  }
+
+  protected _finishUndoPortion() {
+    const capture = this._undoCapture;
+    if (!capture) return;
+    const { diff, operations, inverseOperations } = capture;
+    if (
+      diff.inserted.size ||
+      diff.deleted.size ||
+      diff.moved.size ||
+      !isObjectEmpty(operations[1])
+    ) {
+      inverseOperations[0].reverse();
+      this._undoPortions.push(inverseOperations);
+    }
+    this._undoCapture = undefined;
+    this._undoInverseOperations = ops.mergeOperations(
+      ...this._undoPortions.slice().reverse(),
+    );
+  }
+
+  /** Excludes only synchronous mutations in the callback from user undo.
+   * Does not commit. Rollback and change events still include every mutation.
+   */
+  skipUndo<T>(callback: () => T extends PromiseLike<unknown> ? never : T): T {
+    this._finishUndoPortion();
+    this._skipUndoDepth++;
+    try {
+      const result = callback();
+      if (
+        result !== null &&
+        (typeof result === "object" || typeof result === "function") &&
+        "then" in result &&
+        typeof result.then === "function"
+      ) {
+        throw new Error("skipUndo requires a synchronous callback");
+      }
+      return result;
+    } catch (error) {
+      if (this._lifeCycleStage === "update") this.abort();
+      throw error;
+    } finally {
+      this._skipUndoDepth--;
+    }
+  }
+
   protected _diff: Diff = {
     deleted: new Map(),
     inserted: new Set(),
@@ -953,7 +1012,7 @@ export class Doc {
     this._normalizeListeners.add(callback);
   }
 
-  applyOperations(operations: ops.Operations, flags?: TransactionFlags) {
+  applyOperations(operations: ops.Operations) {
     const hasOperations =
       operations[0].length > 0 || !isObjectEmpty(operations[1]);
     if (!hasOperations) {
@@ -973,7 +1032,6 @@ export class Doc {
     }
     if (this._lifeCycleStage === "update") this.forceCommit();
     let didApplyOperations = false;
-    if (flags) this._transactionFlags = flags;
     withTransaction(
       this,
       () => {
@@ -992,8 +1050,8 @@ export class Doc {
    * Using forceCommit is uncommon and can hurt your app's performance.
    */
   forceCommit(): void;
-  forceCommit(callback: () => void, flags: TransactionFlags): void;
-  forceCommit(callback?: () => void, flags?: TransactionFlags): void {
+  forceCommit(callback: () => void): void;
+  forceCommit(callback?: () => void): void {
     if (this._isForceCommitCallback) {
       throw new Error(
         "You can't call forceCommit inside a forceCommit callback",
@@ -1001,7 +1059,7 @@ export class Doc {
     }
     this._forceCommit();
     if (!callback) return;
-    this._transactionFlags = flags ?? {};
+    this._transactionFlags = {};
     this._isForceCommitCallback = true;
     try {
       withTransaction(this, callback);
@@ -1015,13 +1073,14 @@ export class Doc {
   private _forceCommit(ignoreEmptyDiff = false) {
     if (this._lifeCycleStage === "change")
       throw new Error("You can't trigger an update inside a change event");
-    // push + reverse is more performant than unshift at insertion time
-    this._inverseOperations[0].reverse();
     // End update stage before normalization
     this._lifeCycleStage = "idle";
     ops.maybeTriggerListeners(this, ignoreEmptyDiff);
     this._operations = [[], {}];
     this._inverseOperations = [[], {}];
+    this._undoCapture = undefined;
+    this._undoPortions = [];
+    this._undoInverseOperations = [[], {}];
     this._transactionFlags = {};
     this._diff = {
       deleted: new Map(),
@@ -1036,7 +1095,10 @@ export class Doc {
    * Aborts the current transaction and rolls back all changes.
    */
   abort() {
-    const inverseOps: ops.Operations = [...this["_inverseOperations"]];
+    const inverseOps: ops.Operations = [
+      this._inverseOperations[0].slice().reverse(),
+      this._inverseOperations[1],
+    ];
     withTransaction(
       this,
       () => {
@@ -1046,6 +1108,9 @@ export class Doc {
     );
     this["_operations"] = [[], {}];
     this["_inverseOperations"] = [[], {}];
+    this._undoCapture = undefined;
+    this._undoPortions = [];
+    this._undoInverseOperations = [[], {}];
     this["_transactionFlags"] = {};
     this["_diff"] = {
       deleted: new Map(),

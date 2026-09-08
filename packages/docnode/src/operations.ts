@@ -1,5 +1,5 @@
 import { type Doc, type DocNode } from "./main.js";
-import { type Json, type UnsafeDefinition } from "./types.js";
+import { type Json, type UnsafeDefinition, type Diff } from "./types.js";
 import { detachRange, isObjectEmpty } from "./utils.js";
 
 export function stringifyStateKey(node: DocNode, key: string): string {
@@ -31,35 +31,63 @@ export function parseStateKey(
   return stateValue;
 }
 
+// Each transaction has its complete capture and, when history is enabled,
+// a capture of the current contiguous undoable portion. Sharing the recorder
+// keeps insertion/deletion optimizations identical without filtering a diff
+// that has already lost intermediate values.
+export function createCapture() {
+  const operations: Operations = [[], {}];
+  const inverseOperations: Operations = [[], {}];
+  const diff: Diff = {
+    inserted: new Set(),
+    deleted: new Map(),
+    moved: new Set(),
+    updated: new Set(),
+  };
+  return { operations, inverseOperations, diff };
+}
+
+type Capture = ReturnType<typeof createCapture>;
+
+function captureChange(doc: Doc, callback: (capture: Capture) => void) {
+  callback({
+    operations: doc["_operations"],
+    inverseOperations: doc["_inverseOperations"],
+    diff: doc["_diff"],
+  });
+  const history = doc["_getUndoCapture"]();
+  if (history) callback(history);
+}
+
 export const onSetState = {
   operations: (node: DocNode, key: string) => {
-    const { doc } = node;
-    const statePatchs = doc["_operations"][1];
     const valueString = stringifyStateKey(node, key);
-
-    const prevValueString = doc["_inverseOperations"][1][node.id]?.[key];
-    const nodePatch = statePatchs[node.id];
-    if (prevValueString === valueString && nodePatch) {
-      delete nodePatch[key];
-      if (isObjectEmpty(nodePatch)) {
-        delete statePatchs[node.id];
-        doc["_diff"].updated.delete(node.id);
+    captureChange(node.doc, ({ operations, inverseOperations, diff }) => {
+      const statePatchs = operations[1];
+      const prevValueString = inverseOperations[1][node.id]?.[key];
+      const nodePatch = statePatchs[node.id];
+      if (prevValueString === valueString && nodePatch) {
+        delete nodePatch[key];
+        if (isObjectEmpty(nodePatch)) {
+          delete statePatchs[node.id];
+          diff.updated.delete(node.id);
+        }
+        delete inverseOperations[1][node.id]?.[key];
+      } else {
+        (statePatchs[node.id] ??= {})[key] = valueString;
+        if (!diff.inserted.has(node.id)) diff.updated.add(node.id);
       }
-      delete doc["_inverseOperations"][1][node.id]?.[key];
-    } else {
-      (statePatchs[node.id] ??= {})[key] = valueString;
-      if (!doc["_diff"].inserted.has(node.id))
-        doc["_diff"].updated.add(node.id);
-    }
+    });
   },
   inverseOps: (node: DocNode, key: string) => {
-    const { doc } = node;
-    const insertedInSameTransaction = doc["_diff"].inserted.has(node.id);
-    if (insertedInSameTransaction) return;
-    const inverseStatePatchs = doc["_inverseOperations"][1];
-    if (inverseStatePatchs[node.id]?.[key] !== undefined) return;
-    const originalStringifiedState = stringifyStateKey(node, key);
-    (inverseStatePatchs[node.id] ??= {})[key] = originalStringifiedState;
+    captureChange(node.doc, ({ inverseOperations, diff }) => {
+      if (diff.inserted.has(node.id)) return;
+      if (inverseOperations[1][node.id]?.[key] !== undefined) return;
+      (inverseOperations[1][node.id] ??= {})[key] = stringifyStateKey(
+        node,
+        key,
+      );
+    });
   },
 };
 
@@ -84,61 +112,63 @@ export const onInsertRange = (
       newParent = target.parent!;
       break;
   }
-  const diff = doc["_diff"];
-  doc["_operations"][0].push([
-    0,
-    nodes.map((node) => [node.id, node.type]),
-    newParent === doc.root ? 0 : newParent.id,
-    newPrev?.id ?? 0,
-    newNext?.id ?? 0,
-  ]);
-  if (newParent && !diff.inserted.has(newParent.id)) {
-    doc["_inverseOperations"][0].push([
-      1,
-      nodes[0]!.id,
-      nodes.length > 1 ? nodes.at(-1)!.id : 0,
+  captureChange(doc, (capture) => {
+    const { operations, inverseOperations, diff } = capture;
+
+    operations[0].push([
+      0,
+      nodes.map((node) => [node.id, node.type]),
+      newParent === doc.root ? 0 : newParent.id,
+      newPrev?.id ?? 0,
+      newNext?.id ?? 0,
     ]);
-  }
-  nodes.forEach((topLevelNode) => {
-    copyInsertedToDiff(topLevelNode);
-    topLevelNode.descendants().forEach((node) => {
-      copyInsertedToDiff(node);
-      const parent = node.parent!;
-      const children = getChildren(parent);
-      if (!node.prev) {
-        doc["_operations"][0].push([
-          0,
-          children.map((child) => [child.id, child.type]),
-          parent.id,
-          0,
-          0,
-        ]);
-        if (!diff.inserted.has(parent.id)) {
-          doc["_inverseOperations"][0].push([
-            1,
-            node.id,
-            parent.last !== node ? parent.last!.id : 0,
+    if (newParent && !diff.inserted.has(newParent.id)) {
+      inverseOperations[0].push([
+        1,
+        nodes[0]!.id,
+        nodes.length > 1 ? nodes.at(-1)!.id : 0,
+      ]);
+    }
+    nodes.forEach((topLevelNode) => {
+      copyInsertedToDiff(topLevelNode, capture);
+      topLevelNode.descendants().forEach((node) => {
+        copyInsertedToDiff(node, capture);
+        const parent = node.parent!;
+        const children = getChildren(parent);
+        if (!node.prev) {
+          operations[0].push([
+            0,
+            children.map((child) => [child.id, child.type]),
+            parent.id,
+            0,
+            0,
           ]);
+          if (!diff.inserted.has(parent.id)) {
+            inverseOperations[0].push([
+              1,
+              node.id,
+              parent.last !== node ? parent.last!.id : 0,
+            ]);
+          }
         }
-      }
+      });
     });
   });
 };
 
-function copyInsertedToDiff(node: DocNode) {
-  const doc = node.doc;
-  const diff = doc["_diff"];
+function copyInsertedToDiff(node: DocNode, capture: Capture) {
+  const { diff, operations } = capture;
   const deletedInSameTransaction = diff.deleted.delete(node.id);
   if (deletedInSameTransaction) {
     diff.moved.add(node.id);
-    doc["_diff"].updated.add(node.id);
+    diff.updated.add(node.id);
   } else {
     diff.inserted.add(node.id);
   }
   // [#4GOSK]
   const jsonState = node["_stateToJson"]();
   if (isObjectEmpty(jsonState)) return;
-  doc["_operations"][1][node.id] = jsonState;
+  operations[1][node.id] = jsonState;
 }
 
 export const onDeleteRange = (
@@ -146,56 +176,58 @@ export const onDeleteRange = (
   startNode: DocNode,
   endNode: DocNode,
 ) => {
-  const operations = doc["_operations"][0];
-  const inverseOperations = doc["_inverseOperations"][0];
-  const tempInverseOperations: OrderedOperation[] = [];
-  const parent = startNode.parent!;
+  captureChange(doc, (capture) => {
+    const operations = capture.operations[0];
+    const inverseOperations = capture.inverseOperations[0];
+    const tempInverseOperations: OrderedOperation[] = [];
+    const parent = startNode.parent!;
 
-  operations.push([1, startNode.id, startNode !== endNode ? endNode.id : 0]);
-  const jsonNodes: [string, string][] = [];
-  startNode.to(endNode).forEach((node) => {
-    jsonNodes.push([node.id, node.type]);
-    copyDeletedToDiff(node);
-  });
-  // If the parent was inserted in the same transaction, it means that
-  // is deleted in inverseOps, so it is not possible to insert descendants.
-  const shouldAddToInverseOps = !doc["_diff"].inserted.has(parent.id);
-  if (shouldAddToInverseOps) {
-    tempInverseOperations.push([
-      0,
-      jsonNodes,
-      parent === doc.root ? 0 : parent.id,
-      startNode.prev?.id ?? 0,
-      endNode.next?.id ?? 0,
-    ]);
-  }
-
-  detachRange(startNode, endNode);
-  startNode.to(endNode).forEach((node) => {
-    node.descendants({ includeSelf: true }).forEach((node) => {
-      delete doc["_operations"][1][node.id];
-      doc["_diff"].updated.delete(node.id);
-      if (node.first) {
-        const jsonNodes: [string, string][] = [];
-        node.children().forEach((childNode) => {
-          copyDeletedToDiff(childNode);
-          jsonNodes.push([childNode.id, childNode.type]);
-        });
-        if (shouldAddToInverseOps) {
-          tempInverseOperations.push([0, jsonNodes, node.id, 0, 0]);
-        }
-      }
+    operations.push([1, startNode.id, startNode !== endNode ? endNode.id : 0]);
+    const jsonNodes: [string, string][] = [];
+    startNode.to(endNode).forEach((node) => {
+      jsonNodes.push([node.id, node.type]);
+      copyDeletedToDiff(node, capture);
     });
+    // If the parent was inserted in the same transaction, it means that
+    // is deleted in inverseOps, so it is not possible to insert descendants.
+    const shouldAddToInverseOps = !capture.diff.inserted.has(parent.id);
+    if (shouldAddToInverseOps) {
+      tempInverseOperations.push([
+        0,
+        jsonNodes,
+        parent === doc.root ? 0 : parent.id,
+        startNode.prev?.id ?? 0,
+        endNode.next?.id ?? 0,
+      ]);
+    }
+
+    startNode.to(endNode).forEach((node) => {
+      node.descendants({ includeSelf: true }).forEach((node) => {
+        delete capture.operations[1][node.id];
+        capture.diff.updated.delete(node.id);
+        if (node.first) {
+          const jsonNodes: [string, string][] = [];
+          node.children().forEach((childNode) => {
+            copyDeletedToDiff(childNode, capture);
+            jsonNodes.push([childNode.id, childNode.type]);
+          });
+          if (shouldAddToInverseOps) {
+            tempInverseOperations.push([0, jsonNodes, node.id, 0, 0]);
+          }
+        }
+      });
+    });
+    /**
+     * All operations are reversed in main.ts. But we reverse the delete operations
+     * again here because they're the only ones that don't need to be reversed
+     * (reversed + reversed = not reversed). This is because descendants are removed
+     * after the ancestors.
+     * TODO: To avoid a reverse and make this more performant, we can use an iterator
+     * other than.descendants().forEach above.
+     */
+    inverseOperations.push(...tempInverseOperations.reverse());
   });
-  /**
-   * All operations are reversed in main.ts. But we reverse the delete operations
-   * again here because they're the only ones that don't need to be reversed
-   * (reversed + reversed = not reversed). This is because descendants are removed
-   * after the ancestors.
-   * TODO: To avoid a reverse and make this more performant, we can use an iterator
-   * other than.descendants().forEach above.
-   */
-  inverseOperations.push(...tempInverseOperations.reverse());
+  detachRange(startNode, endNode);
 };
 
 export const onMoveRange = (
@@ -206,30 +238,32 @@ export const onMoveRange = (
   newPrev: DocNode | undefined,
   newNext: DocNode | undefined,
 ) => {
-  const endId = endNode.id === startNode.id ? 0 : endNode.id;
-  doc["_operations"][0].push([
-    2,
-    startNode.id,
-    endId,
-    newParent === doc.root ? 0 : newParent.id,
-    newPrev?.id ?? 0,
-    newNext?.id ?? 0,
-  ]);
-  // TODO: non-null assertion because it doesn't make sense to move root
-  // but should be tested!
-  const currentParent = startNode.parent!;
-  const currentPrev = startNode.prev;
-  const currentNext = endNode.next;
-  doc["_inverseOperations"][0].push([
-    2,
-    startNode.id,
-    endId,
-    currentParent === doc.root ? 0 : currentParent.id,
-    currentPrev?.id ?? 0,
-    currentNext?.id ?? 0,
-  ]);
-  startNode.to(endNode).forEach((node) => {
-    if (!doc["_diff"].inserted.has(node.id)) doc["_diff"].moved.add(node.id);
+  captureChange(doc, ({ operations, inverseOperations, diff }) => {
+    const endId = endNode.id === startNode.id ? 0 : endNode.id;
+    operations[0].push([
+      2,
+      startNode.id,
+      endId,
+      newParent === doc.root ? 0 : newParent.id,
+      newPrev?.id ?? 0,
+      newNext?.id ?? 0,
+    ]);
+    // TODO: non-null assertion because it doesn't make sense to move root
+    // but should be tested!
+    const currentParent = startNode.parent!;
+    const currentPrev = startNode.prev;
+    const currentNext = endNode.next;
+    inverseOperations[0].push([
+      2,
+      startNode.id,
+      endId,
+      currentParent === doc.root ? 0 : currentParent.id,
+      currentPrev?.id ?? 0,
+      currentNext?.id ?? 0,
+    ]);
+    startNode.to(endNode).forEach((node) => {
+      if (!diff.inserted.has(node.id)) diff.moved.add(node.id);
+    });
   });
 };
 
@@ -287,27 +321,36 @@ export const onApplyOperations = (doc: Doc, operations: Operations) => {
   });
   // Apply state patch
   const toApplyStatePatch = operations[1];
-  const currentStatePatch = doc["_operations"][1];
-  const currentInverseStatePatch = doc["_inverseOperations"][1];
   for (const id in toApplyStatePatch) {
     const node = doc.getNodeById(id);
     if (!node) continue;
-    const insertedInSameTransaction = doc["_diff"].inserted.has(id);
+    // A value already in place on a pre-existing node is treated as applied,
+    // like an insert of an existing node: it changes nothing and needs no
+    // inverse. The state of a node inserted in this transaction is part of
+    // its creation and is taken verbatim.
+    const inserted = doc["_diff"].inserted.has(id);
+    const patch: Record<string, string> = {};
     for (const key in toApplyStatePatch[id]) {
       const value = toApplyStatePatch[id][key]!;
-      // The state of a node inserted in this transaction is part of its
-      // creation and needs no inverse: the inverse operation is a delete.
-      if (!insertedInSameTransaction) {
-        const current = stringifyStateKey(node, key);
-        // A value already in place is treated as applied, like an insert of
-        // an existing node. It changes nothing and needs no inverse.
-        if (current === value) continue;
-        doc["_diff"].updated.add(id);
-        (currentInverseStatePatch[id] ??= {})[key] ??= current;
+      if (!inserted && stringifyStateKey(node, key) === value) continue;
+      patch[key] = value;
+    }
+    if (isObjectEmpty(patch)) continue;
+    captureChange(doc, ({ operations: current, inverseOperations, diff }) => {
+      current[1][id] = { ...current[1][id], ...patch };
+      if (!diff.inserted.has(id)) diff.updated.add(id);
+      if (!diff.inserted.has(id)) {
+        for (const key in patch) {
+          (inverseOperations[1][id] ??= {})[key] ??= stringifyStateKey(
+            node,
+            key,
+          );
+        }
       }
-      (currentStatePatch[id] ??= {})[key] = value;
+    });
+    for (const key in patch) {
       const state = (node as DocNode<UnsafeDefinition>)["_state"];
-      state[key] = parseStateKey(node, key, value);
+      state[key] = parseStateKey(node, key, patch[key]!);
     }
   }
 };
@@ -323,32 +366,52 @@ export const maybeTriggerListeners = (doc: Doc, ignoreEmptyDiff = false) => {
       !isObjectEmpty(doc["_operations"][1])
     );
   };
-  if (!hasChanges() && !ignoreEmptyDiff) return;
+  if (!hasChanges() && !ignoreEmptyDiff) {
+    doc["_finishUndoPortion"]();
+    doc["_lifeCycleStage"] = "change";
+    doc.undoManager?.["_record"]();
+    return;
+  }
+  doc["_finishUndoPortion"]();
+  const skipDepth = doc["_skipUndoDepth"];
+  doc["_skipUndoDepth"] = 0;
   doc["_lifeCycleStage"] = "normalize";
-  doc["_normalizeListeners"].forEach((listener) =>
-    listener({ diff: doc["_diff"] }),
-  );
-  if (doc["_strictMode"]) {
-    doc["_lifeCycleStage"] = "normalize2";
+  try {
     doc["_normalizeListeners"].forEach((listener) =>
       listener({ diff: doc["_diff"] }),
     );
+    if (doc["_strictMode"]) {
+      doc["_lifeCycleStage"] = "normalize2";
+      doc["_normalizeListeners"].forEach((listener) =>
+        listener({ diff: doc["_diff"] }),
+      );
+    }
+  } finally {
+    doc["_finishUndoPortion"]();
+    doc["_skipUndoDepth"] = skipDepth;
   }
-  if (!hasChanges()) return;
+  doc["_inverseOperations"][0].reverse();
   doc["_lifeCycleStage"] = "change";
+  doc.undoManager?.["_record"]();
+  if (!hasChanges()) return;
   doc["_changeListeners"].forEach((listener) =>
     listener({
       operations: doc["_operations"],
       inverseOperations: doc["_inverseOperations"],
       diff: doc["_diff"],
-      flags: doc["_transactionFlags"],
+      flags:
+        doc["_undoInverseOperations"][0].length ||
+        Object.values(doc["_undoInverseOperations"][1]).some(
+          (patch) => Object.keys(patch).length,
+        )
+          ? {}
+          : { skipUndo: true },
     }),
   );
 };
 
-const copyDeletedToDiff = (node: DocNode) => {
-  const doc = node.doc;
-  const diff = doc["_diff"];
+const copyDeletedToDiff = (node: DocNode, capture: Capture) => {
+  const { diff, inverseOperations } = capture;
   // remove from operations.statePatch if its state changed in the same transaction
   // remove from diff if it was inserted in the same transaction
   const insertedInSameTransaction = diff.inserted.delete(node.id);
@@ -356,10 +419,10 @@ const copyDeletedToDiff = (node: DocNode) => {
     diff.moved.delete(node.id);
   } else {
     // backup the previous state in inverseOperations.statePatch
-    const inversePatchState = doc["_inverseOperations"][1][node.id];
+    const inversePatchState = inverseOperations[1][node.id];
     const currentState = node["_stateToJson"]();
     const previousState = { ...currentState, ...inversePatchState };
-    doc["_inverseOperations"][1][node.id] = previousState;
+    inverseOperations[1][node.id] = previousState;
     // add to diff.deleted
     diff.deleted.set(node.id, node);
   }

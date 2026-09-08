@@ -202,7 +202,7 @@ describe("undoManager.ts coverage", () => {
     const doc = createTextDocWithUndo(2);
     const undoManager = doc.undoManager;
     expect(undoManager.isEnabled).toBe(true);
-    expect(doc["_changeListeners"].size).toBe(1);
+    expect(doc["_changeListeners"].size).toBe(0);
 
     doc.root.append(...text(doc, "1"));
     doc.forceCommit();
