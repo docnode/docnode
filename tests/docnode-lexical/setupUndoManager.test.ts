@@ -67,6 +67,29 @@ const forceGc = async (): Promise<void> => {
 };
 
 describe("setupUndoManager doc undo manager", () => {
+  it("updates CAN_UNDO when only the document history changes", () => {
+    const doc = createLexicalDoc();
+    const editor = makeEditor();
+    const values: boolean[] = [];
+    const offCommand = editor.registerCommand(
+      CAN_UNDO_COMMAND,
+      (value) => {
+        values.push(value);
+        return false;
+      },
+      COMMAND_PRIORITY_LOW,
+    );
+    const off = setupUndoManager(editor, doc, emptyKeyBinding());
+    const node = doc.createNode(LexicalDocNode);
+    doc.undoManager.skipUndo(() => doc.root.append(node));
+    node.delete();
+    doc.forceCommit();
+    expect(doc.undoManager.canUndo()).toBe(true);
+    expect(values).toStrictEqual([false, true]);
+    off();
+    offCommand();
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
   });
@@ -213,7 +236,7 @@ describe("setupUndoManager doc undo manager", () => {
     const doc = createLexicalDoc({ mergeInterval: 500 });
     const editor = makeEditor();
     const docNode = doc.createNode(LexicalDocNode);
-    doc.skipUndo(() =>
+    doc.undoManager.skipUndo(() =>
       doc.forceCommit(() => {
         doc.root.append(docNode);
       }),

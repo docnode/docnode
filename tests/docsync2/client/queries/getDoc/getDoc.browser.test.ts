@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import { isExistingGetDocData } from "@docukit/docsync2/client";
 import { tick } from "../../utils/async.js";
 import { createTestClient, TestNode } from "../../utils/client.js";
@@ -19,6 +19,37 @@ import {
 import { generateTestUserId } from "../../utils/generators.js";
 
 describe("getDoc", () => {
+  test("history-only notifications do not become sync operations", async () => {
+    const client = createTestClient({
+      undoManager: { maxUndoSteps: 10, mergeInterval: 0 },
+    });
+    const created = await createTestDoc(client);
+    const observed = observeTestDoc(client);
+    try {
+      await waitForDocStatus(client, observed, "idle");
+      const syncChanges = vi.fn();
+      const docChanges = vi.fn();
+      const offSync = client.docSync.on("change", syncChanges);
+      const offDoc = created.doc.onChange(docChanges);
+      const node = created.doc.createNode(TestNode);
+      created.doc.undoManager.skipUndo(() => created.doc.root.append(node));
+      node.delete();
+      created.doc.forceCommit();
+      expect(created.doc.undoManager.canUndo()).toBe(true);
+      expect(docChanges).toHaveBeenCalledTimes(1);
+      expect(syncChanges).not.toHaveBeenCalled();
+      created.doc.undoManager.undo();
+      expect(syncChanges).toHaveBeenCalledTimes(1);
+      expect(created.doc.getNodeById(node.id)).toBeDefined();
+      offDoc();
+      offSync();
+    } finally {
+      observed.unsubscribe();
+      client.docSync.disconnect();
+      client.docSync.dispose();
+    }
+  });
+
   test("two observers for the same doc id receive the same in-memory doc", async () => {
     const testClient = createTestClient();
     const created = await createTestDoc(testClient);

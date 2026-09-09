@@ -122,6 +122,5 @@ doc.undoManager.isEnabled; // Check if maxUndoSteps is greater than 0
 doc.undoManager.onPush(callback); // Listen when a step is pushed to undo or redo
 doc.undoManager.onPop(callback); // Listen after undo or redo pops a step
 
-doc.skipUndo(callback); // Exclude synchronous mutations without forcing a commit
-doc.skipUndo(() => doc.applyOperations(operations)); // Apply operations without adding to undo history
+doc.undoManager.skipUndo(callback); // Exclude synchronous mutations from undo history
 ```

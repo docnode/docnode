@@ -1,6 +1,29 @@
 import { describe, test, expect, vi } from "vitest";
 import { emptyIDB, testWrapper, waitForLocalBroadcast } from "./utils.js";
 
+test("history-only notifications stay local and undo still syncs content", async () => {
+  await testWrapper(async ({ reference, otherDevice }) => {
+    await reference.loadDoc();
+    await otherDevice.loadDoc();
+    const doc = reference.doc!;
+    const localOperations = vi.spyOn(reference.client, "onLocalOperations");
+    const changes = vi.fn();
+    const off = doc.onChange(changes);
+    doc.undoManager.skipUndo(() => reference.addChild("Page"));
+    const page = doc.root.last!;
+    page.delete();
+    doc.forceCommit();
+    expect(changes).toHaveBeenCalledTimes(1);
+    expect(doc.undoManager.canUndo()).toBe(true);
+    expect(localOperations).not.toHaveBeenCalled();
+    doc.undoManager.undo();
+    expect(localOperations).toHaveBeenCalledTimes(1);
+    await otherDevice.assertMemoryDoc(["Page"]);
+    off();
+    localOperations.mockRestore();
+  });
+});
+
 describe("Local-First", () => {
   test("cannot load doc twice", async () => {
     await testWrapper(async (clients) => {
@@ -502,7 +525,7 @@ test("mixed skipUndo transaction syncs every mutation offline and preserves iden
     const projects = doc.root.last!;
     let changes = 0;
     const off = doc.onChange(() => changes++);
-    const page = doc.skipUndo(() => {
+    const page = doc.undoManager.skipUndo(() => {
       reference.addChild("Page");
       const page = doc.root.last!;
       page.move(trash, "append");

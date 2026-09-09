@@ -48,7 +48,7 @@ describe("update", () => {
       flags.push(event.flags);
     });
 
-    doc.skipUndo(() =>
+    doc.undoManager.skipUndo(() =>
       doc.forceCommit(() => {
         doc.root.append(...text(doc, "seed"));
       }),
@@ -72,7 +72,7 @@ describe("update", () => {
       flags.push(event.flags);
     });
 
-    doc.skipUndo(() =>
+    doc.undoManager.skipUndo(() =>
       doc.forceCommit(() => {
         doc.abort();
       }),
@@ -107,7 +107,7 @@ describe("update", () => {
     });
 
     expect(() =>
-      doc.skipUndo(() =>
+      doc.undoManager.skipUndo(() =>
         doc.forceCommit(() => {
           doc.root.append(...text(doc, "seed"));
           throw new Error("boom");
@@ -124,7 +124,7 @@ describe("update", () => {
     const doc = createTextDocWithUndo(10);
 
     expect(() =>
-      doc.skipUndo(() =>
+      doc.undoManager.skipUndo(() =>
         doc.forceCommit(() => {
           doc.root.append(...text(doc, "seed"));
           doc.forceCommit();
@@ -911,7 +911,7 @@ describe("applyOperations", () => {
     const doc = createTextDocWithUndo();
     const flags = collectFlags(doc, () => {
       doc.root.append(...text(doc, "local"));
-      doc.skipUndo(() => doc.applyOperations(remoteOperations));
+      doc.undoManager.skipUndo(() => doc.applyOperations(remoteOperations));
     });
 
     expect(flags).toStrictEqual([{}, { skipUndo: true }]);
@@ -940,7 +940,7 @@ describe("applyOperations", () => {
     const doc = createTextDocWithUndo();
     const undoManager = doc.undoManager;
 
-    doc.skipUndo(() => doc.applyOperations(remoteOperations));
+    doc.undoManager.skipUndo(() => doc.applyOperations(remoteOperations));
     expect(undoManager.canUndo()).toBe(false);
 
     doc.root.append(...text(doc, "local"));
@@ -952,7 +952,7 @@ describe("applyOperations", () => {
     const remoteOperations = createRemoteInsertOperations("remote");
     const doc = new Doc({ type: "root", extensions: [TextExtension] });
     const flags = collectFlags(doc, () => {
-      doc.skipUndo(() => doc.applyOperations(remoteOperations));
+      doc.undoManager.skipUndo(() => doc.applyOperations(remoteOperations));
       doc.root.append(...text(doc, "local"));
     });
     expect(flags).toStrictEqual([{ skipUndo: true }, {}]);

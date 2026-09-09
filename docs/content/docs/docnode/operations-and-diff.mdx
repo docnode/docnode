@@ -73,7 +73,7 @@ You can replay operations into the same or another document:
 
 ```ts
 doc.applyOperations(operations);
-doc.skipUndo(() => doc.applyOperations(operations));
+doc.undoManager.skipUndo(() => doc.applyOperations(operations));
 ```
 
 In OT mode, the set of operations must be ordered. For all clients to converge on the same document, they must apply the same operations in the same order. Therefore, a central server is required as the source of truth.

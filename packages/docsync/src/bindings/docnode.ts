@@ -32,9 +32,19 @@ export const DocNodeBinding = (docConfigs: DocConfig[]) => {
     onChange: (
       doc,
       cb: (ev: { operations: Operations; flags?: TransactionFlags }) => void,
-    ) => doc.onChange(cb),
+    ) =>
+      doc.onChange((event) => {
+        // DocNode also announces history-only changes. They are local to its
+        // undo manager and must not create sync work or broadcasts.
+        if (
+          event.operations[0].length ||
+          Object.keys(event.operations[1]).length
+        )
+          cb(event);
+      }),
     applyOperations: (doc, operations, flags) => {
-      if (flags?.skipUndo) doc.skipUndo(() => doc.applyOperations(operations));
+      if (flags?.skipUndo)
+        doc.undoManager.skipUndo(() => doc.applyOperations(operations));
       else doc.applyOperations(operations);
     },
     exportHistory: (doc) => doc.undoManager.exportHistory(),

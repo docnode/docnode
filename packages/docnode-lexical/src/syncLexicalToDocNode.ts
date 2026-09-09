@@ -72,7 +72,7 @@ export function syncLexicalToDocNode(
         };
 
         if (tags.has(SKIP_UNDO_TAG)) {
-          doc.skipUndo(() => doc.forceCommit(syncToDocNode));
+          doc.undoManager.skipUndo(() => doc.forceCommit(syncToDocNode));
         } else {
           syncToDocNode();
           // Force commit to trigger onChange handlers

@@ -556,64 +556,8 @@ export class Doc {
   protected _inverseOperations: ops.Operations = [[], {}];
   protected _transactionFlags: TransactionFlags;
   private _isForceCommitCallback = false;
-  protected _skipUndoDepth = 0;
-  private _undoCapture: ReturnType<typeof ops.createCapture> | undefined;
-  private _undoPortions: ops.Operations[] = [];
-  protected _undoInverseOperations: ops.Operations = [[], {}];
-
-  protected _getUndoCapture() {
-    if (
-      this._skipUndoDepth ||
-      this._transactionFlags?.skipUndo ||
-      !this.undoManager
-    )
-      return;
-    return (this._undoCapture ??= ops.createCapture());
-  }
-
-  protected _finishUndoPortion() {
-    const capture = this._undoCapture;
-    if (!capture) return;
-    const { diff, operations, inverseOperations } = capture;
-    if (
-      diff.inserted.size ||
-      diff.deleted.size ||
-      diff.moved.size ||
-      !isObjectEmpty(operations[1])
-    ) {
-      inverseOperations[0].reverse();
-      this._undoPortions.push(inverseOperations);
-    }
-    this._undoCapture = undefined;
-    this._undoInverseOperations = ops.mergeOperations(
-      ...this._undoPortions.slice().reverse(),
-    );
-  }
-
-  /** Excludes only synchronous mutations in the callback from user undo.
-   * Does not commit. Rollback and change events still include every mutation.
-   */
-  skipUndo<T>(callback: () => T extends PromiseLike<unknown> ? never : T): T {
-    this._finishUndoPortion();
-    this._skipUndoDepth++;
-    try {
-      const result = callback();
-      if (
-        result !== null &&
-        (typeof result === "object" || typeof result === "function") &&
-        "then" in result &&
-        typeof result.then === "function"
-      ) {
-        throw new Error("skipUndo requires a synchronous callback");
-      }
-      return result;
-    } catch (error) {
-      if (this._lifeCycleStage === "update") this.abort();
-      throw error;
-    } finally {
-      this._skipUndoDepth--;
-    }
-  }
+  // Absent when the full transaction inverse is also the user-undo inverse.
+  protected _undoChanges: ReturnType<typeof ops.createUndoChanges> | undefined;
 
   protected _diff: Diff = {
     deleted: new Map(),
@@ -801,13 +745,14 @@ export class Doc {
       ? nodeIdFactory(this, idGen.extractTime)
       : idGen.generate;
 
+    this.undoManager = new UndoManager(this, config.undoManager);
+    this._transactionFlags = { skipUndo: true };
     this._lifeCycleStage = "init";
     config.extensions.forEach((extension) => {
       extension.register?.(this);
     });
     this._lifeCycleStage = "idle";
     this._forceCommit(true);
-    this.undoManager = new UndoManager(this, config.undoManager);
     this._transactionFlags = { skipUndo: true };
     // If the first tx happens in the same microtask the doc is created,
     // we can skip the undo manager for that tx.
@@ -1078,9 +1023,7 @@ export class Doc {
     ops.maybeTriggerListeners(this, ignoreEmptyDiff);
     this._operations = [[], {}];
     this._inverseOperations = [[], {}];
-    this._undoCapture = undefined;
-    this._undoPortions = [];
-    this._undoInverseOperations = [[], {}];
+    this._undoChanges = undefined;
     this._transactionFlags = {};
     this._diff = {
       deleted: new Map(),
@@ -1108,9 +1051,7 @@ export class Doc {
     );
     this["_operations"] = [[], {}];
     this["_inverseOperations"] = [[], {}];
-    this._undoCapture = undefined;
-    this._undoPortions = [];
-    this._undoInverseOperations = [[], {}];
+    this._undoChanges = undefined;
     this["_transactionFlags"] = {};
     this["_diff"] = {
       deleted: new Map(),

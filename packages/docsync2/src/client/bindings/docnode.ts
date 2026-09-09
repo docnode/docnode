@@ -33,9 +33,18 @@ export const DocNodeBinding = (docConfigs: DocConfig[]) => {
       doc.forceCommit();
       return doc;
     },
-    onChange: (doc, cb) => doc.onChange(cb),
+    onChange: (doc, cb) =>
+      doc.onChange((event) => {
+        // History-only notifications are not document operations to sync.
+        if (
+          event.operations[0].length ||
+          Object.keys(event.operations[1]).length
+        )
+          cb(event);
+      }),
     applyOperations: (doc, operations, flags) => {
-      if (flags?.skipUndo) doc.skipUndo(() => doc.applyOperations(operations));
+      if (flags?.skipUndo)
+        doc.undoManager.skipUndo(() => doc.applyOperations(operations));
       else doc.applyOperations(operations);
     },
   });

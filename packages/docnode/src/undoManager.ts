@@ -37,20 +37,40 @@ export class UndoManager {
   private _pushHandlers = new Set<Handler>();
   private _popHandlers = new Set<Handler>();
 
+  protected _skipUndoDepth = 0;
+
+  /** Excludes only synchronous mutations in the callback from user undo.
+   * Does not commit. Rollback and change events still include every mutation.
+   */
+  skipUndo<T>(callback: () => T extends PromiseLike<unknown> ? never : T): T {
+    this._skipUndoDepth++;
+    try {
+      const result = callback();
+      if (
+        result !== null &&
+        (typeof result === "object" || typeof result === "function") &&
+        "then" in result &&
+        typeof result.then === "function"
+      ) {
+        throw new Error("skipUndo requires a synchronous callback");
+      }
+      return result;
+    } catch (error) {
+      if (this._doc["_lifeCycleStage"] === "update") this._doc.abort();
+      throw error;
+    } finally {
+      this._skipUndoDepth--;
+    }
+  }
+
   constructor(doc: Doc, options?: UndoManagerConfig) {
     this._doc = doc;
     this._maxUndoSteps = options?.maxUndoSteps ?? 0;
     this._mergeInterval = options?.mergeInterval ?? 500;
   }
 
-  protected _record() {
-    if (!this.isEnabled) return;
-    const operations = this._doc["_undoInverseOperations"];
-    if (
-      !operations[0].length &&
-      !Object.values(operations[1]).some((patch) => Object.keys(patch).length)
-    )
-      return;
+  protected _record(operations: Operations | undefined) {
+    if (!this.isEnabled || !operations) return;
     const item: UndoStackItem = { operations, meta: new Map() };
     if (this._txType === "update") {
       const now = Date.now();
@@ -85,6 +105,7 @@ export class UndoManager {
       this._txType = "update";
       this._pushHandlers.forEach((h) => h({ meta: item.meta, type: "undo" }));
     }
+    return true;
   }
 
   get isEnabled() {
