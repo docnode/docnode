@@ -63,7 +63,8 @@ export class BCHelper<
       source,
       doc,
       operations,
-      source === "network" ? { ...flags, skipUndo: true } : flags,
+      // Incoming changes belong to another tab, even for the same user.
+      { ...flags, skipUndo: true },
     );
   }
 

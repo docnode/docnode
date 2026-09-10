@@ -46,10 +46,14 @@ describe("getDoc", () => {
   test("applies same-user local operations through BroadcastChannel", async () => {
     const userId = generateTestUserId();
     const source = createTestClient({
+      undoManager: { maxUndoSteps: 10, mergeInterval: 0 },
       timing: { singleClientMaxDebounce: 1000 },
       userId,
     });
-    const target = createTestClient({ userId });
+    const target = createTestClient({
+      userId,
+      undoManager: { maxUndoSteps: 10, mergeInterval: 0 },
+    });
     const unsubscribes: (() => void)[] = [];
 
     try {
@@ -73,6 +77,23 @@ describe("getDoc", () => {
       await expect
         .poll(() => targetData.doc.toJSON())
         .toStrictEqual(created.doc.toJSON());
+      expect(created.doc.undoManager.canUndo()).toBe(true);
+      expect(targetData.doc.undoManager.canUndo()).toBe(false);
+
+      targetData.doc.undoManager.undo();
+      expect(targetData.doc.toJSON()).toStrictEqual(created.doc.toJSON());
+      created.doc.undoManager.undo();
+      await expect
+        .poll(() => targetData.doc.toJSON())
+        .toStrictEqual(created.doc.toJSON());
+      expect(targetData.doc.undoManager.canUndo()).toBe(false);
+      expect(targetData.doc.undoManager.canRedo()).toBe(false);
+
+      created.doc.undoManager.redo();
+      await expect
+        .poll(() => targetData.doc.toJSON())
+        .toStrictEqual(created.doc.toJSON());
+      expect(targetData.doc.undoManager.canUndo()).toBe(false);
     } finally {
       for (const unsubscribe of unsubscribes) unsubscribe();
       source.docSync.disconnect();

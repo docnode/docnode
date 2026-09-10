@@ -67,7 +67,7 @@ const applyOperationsToStoredDoc = async <
 
     const doc = docBinding.deserialize(serializedDoc);
     for (const operation of [...args.serverOperations, ...args.operations]) {
-      docBinding.applyOperations(doc, operation);
+      docBinding.applyOperations(doc, operation, { skipUndo: true });
     }
 
     await ctx.saveSerializedDoc({
