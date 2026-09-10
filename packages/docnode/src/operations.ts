@@ -237,9 +237,14 @@ export const onApplyOperations = (doc: Doc, operations: Operations) => {
   operations[0].forEach((operation) => {
     switch (operation[0]) {
       case 0:
-        const nodes = operation[1].map((jsonNode) =>
-          doc["_createNodeFromJson"]([jsonNode[0], jsonNode[1], {}]),
-        );
+        // Deleting or moving a missing node skips that operation and keeps
+        // applying the batch. Inserting a node that already exists is treated
+        // the same way: the intent is already satisfied. Undo steps depend on
+        // this when an excluded change restored the node first.
+        const nodes = operation[1]
+          .filter(([id]) => !doc.getNodeById(id))
+          .map(([id, type]) => doc["_createNodeFromJson"]([id, type, {}]));
+        if (nodes.length === 0) break;
         const prev = operation[3] ? doc.getNodeById(operation[3]) : undefined;
         if (prev) {
           doc["_insertRange"](prev, "after", nodes);
@@ -287,24 +292,22 @@ export const onApplyOperations = (doc: Doc, operations: Operations) => {
   for (const id in toApplyStatePatch) {
     const node = doc.getNodeById(id);
     if (!node) continue;
-    currentStatePatch[id] = {
-      ...currentStatePatch[id],
-      ...toApplyStatePatch[id],
-    };
-    if (!doc["_diff"].inserted.has(id)) doc["_diff"].updated.add(id);
     const insertedInSameTransaction = doc["_diff"].inserted.has(id);
     for (const key in toApplyStatePatch[id]) {
-      // Only if it was inserted in the same transaction, it is NOT added to the inverseOps.
-      // Because the inverseOp is a delete, and therefore the state doesn't matter
+      const value = toApplyStatePatch[id][key]!;
+      // The state of a node inserted in this transaction is part of its
+      // creation and needs no inverse: the inverse operation is a delete.
       if (!insertedInSameTransaction) {
-        if (!Boolean(currentInverseStatePatch[id]?.[key])) {
-          const originalStringifiedState = stringifyStateKey(node, key);
-          (currentInverseStatePatch[id] ??= {})[key] ??=
-            originalStringifiedState;
-        }
+        const current = stringifyStateKey(node, key);
+        // A value already in place is treated as applied, like an insert of
+        // an existing node. It changes nothing and needs no inverse.
+        if (current === value) continue;
+        doc["_diff"].updated.add(id);
+        (currentInverseStatePatch[id] ??= {})[key] ??= current;
       }
+      (currentStatePatch[id] ??= {})[key] = value;
       const state = (node as DocNode<UnsafeDefinition>)["_state"];
-      state[key] = parseStateKey(node, key, toApplyStatePatch[id][key]!);
+      state[key] = parseStateKey(node, key, value);
     }
   }
 };

@@ -97,7 +97,13 @@ export class UndoManager {
     if (!item) return;
     this._txType = "undo";
     this._lastUpdate = undefined;
-    this._doc.applyOperations(item.operations);
+    try {
+      this._doc.applyOperations(item.operations);
+    } finally {
+      // Nothing may have changed (every operation was skipped), in which case
+      // no change event resets the mode. It must not leak into the next edit.
+      this._txType = "update";
+    }
     this._popHandlers.forEach((h) => h({ meta: item.meta, type: "undo" }));
   }
 
@@ -107,7 +113,11 @@ export class UndoManager {
     if (!item) return;
     this._txType = "redo";
     this._lastUpdate = undefined;
-    this._doc.applyOperations(item.operations);
+    try {
+      this._doc.applyOperations(item.operations);
+    } finally {
+      this._txType = "update";
+    }
     this._popHandlers.forEach((h) => h({ meta: item.meta, type: "redo" }));
   }
 
