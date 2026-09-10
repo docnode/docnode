@@ -552,25 +552,26 @@ export class Doc {
     | "normalize2"
     | "change"
     | "disposed" = "idle";
-  protected _operations: ops.Operations = [[], {}];
-  protected _inverseOperations: ops.Operations = [[], {}];
+  protected _operations!: ops.Operations;
+  protected _inverseOperations!: ops.Operations;
   protected _transactionFlags: TransactionFlags;
   private _isForceCommitCallback = false;
-  // Absent when the full transaction inverse is also the user-undo inverse.
-  protected _undoChanges: ReturnType<typeof ops.createUndoChanges> | undefined;
-
-  protected _diff: Diff = {
-    deleted: new Map(),
-    inserted: new Set(),
-    moved: new Set(),
-    updated: new Set(),
-  };
+  protected _diff!: Diff;
+  // Rollback and change events use the full transaction bookkeeping. `_undo`
+  // exists only after a mutation inside `skipUndo` and sees the undoable
+  // mutations from then on; it becomes the undo step. See `ops.Tracker`.
+  protected _full!: ops.Tracker;
+  protected _undo: ops.Tracker | undefined;
+  // Cached so that mutations never allocate: [full] and [full, undo].
+  private _fullOnly!: [ops.Tracker];
+  private _trackers!: ops.Tracker[];
   protected _nodeIdGenerator: (doc: Doc) => string;
   protected _idGen: NodeIdGenerator;
   readonly root: DocNode;
   readonly undoManager: UndoManager;
 
   constructor(config: DocConfig) {
+    this._resetTransaction();
     this._nodeDefs = new Set();
     this._resolvedNodeDefs = new Map();
     const RootNode = defineNode({ type: config.type });
@@ -1021,9 +1022,13 @@ export class Doc {
     // End update stage before normalization
     this._lifeCycleStage = "idle";
     ops.maybeTriggerListeners(this, ignoreEmptyDiff);
+    this._resetTransaction();
+    this._lifeCycleStage = "idle";
+  }
+
+  private _resetTransaction() {
     this._operations = [[], {}];
     this._inverseOperations = [[], {}];
-    this._undoChanges = undefined;
     this._transactionFlags = {};
     this._diff = {
       deleted: new Map(),
@@ -1031,7 +1036,15 @@ export class Doc {
       moved: new Set(),
       updated: new Set(),
     };
-    this._lifeCycleStage = "idle";
+    this._full = {
+      inverse: this._inverseOperations,
+      inserted: this._diff.inserted,
+      deleted: this._diff.deleted,
+      moved: this._diff.moved,
+    };
+    this._undo = undefined;
+    this._fullOnly = [this._full];
+    this._trackers = this._fullOnly;
   }
 
   /**
@@ -1049,16 +1062,7 @@ export class Doc {
       },
       true,
     );
-    this["_operations"] = [[], {}];
-    this["_inverseOperations"] = [[], {}];
-    this._undoChanges = undefined;
-    this["_transactionFlags"] = {};
-    this["_diff"] = {
-      deleted: new Map(),
-      inserted: new Set(),
-      moved: new Set(),
-      updated: new Set(),
-    };
+    this._resetTransaction();
     this["_lifeCycleStage"] = "idle";
   }
 

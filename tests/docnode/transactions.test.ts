@@ -149,6 +149,20 @@ describe("throw errors and abort", () => {
     });
   });
 
+  test("abort applies inverse operations in reverse order", () => {
+    const doc = new Doc({ type: "root", extensions: [TextExtension] });
+    checkUndoManager(0, doc, () => {
+      const [node] = text(doc, "1");
+      doc.root.append(node!);
+      node!.delete();
+      // Insert then delete: replaying the inverses in insertion order would
+      // re-insert the node with an empty state instead of leaving it deleted.
+      doc.abort();
+      assertDoc(doc, []);
+      expect(doc.getNodeById(node!.id)).toBeUndefined();
+    });
+  });
+
   test("should rollback to previous state and not trigger listeners", () => {
     const doc = new Doc({ type: "root", extensions: [TextExtension] });
     const { root } = doc;

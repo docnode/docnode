@@ -285,6 +285,9 @@ export function checkUndoManager(
   callback: () => void,
 ) {
   const IS_TEST_NODE = false;
+  // The baseline must be a committed state; detached nodes created before the
+  // callback (e.g. `text(doc, ...)`) leave a pending transaction behind.
+  doc.forceCommit();
   const jsonDoc = doc.toJSON();
   const nodes = Array.from(doc["_nodeDefs"]);
   // This document will replay all doc operations in a single update
@@ -468,7 +471,7 @@ export function checkUndoManager(
         expect(getStateSnapshot(doc3, IS_TEST_NODE)).toStrictEqual(
           snapshots[i + 1],
         );
-        expect(changeEvent).toStrictEqual(changeEvents[i]);
+        expectSameChange(changeEvent, changeEvents[i]!);
       },
     );
   }
@@ -485,7 +488,7 @@ export function checkUndoManager(
         expect(getStateSnapshot(doc4, IS_TEST_NODE)).toStrictEqual(
           snapshots[i + 1],
         );
-        expect(changeEvent).toStrictEqual(changeEvents[i]);
+        expectSameChange(changeEvent, changeEvents[i]!);
       },
     );
     doc4.applyOperations(changeEvent.operations);
@@ -533,6 +536,17 @@ export function checkUndoManager(
       },
     );
   }
+}
+
+// Replicas replay operations without skipUndo, so their `flags` differ. Deleted
+// nodes are live objects whose links keep changing after the event, so they are
+// compared by id.
+function expectSameChange(actual: ChangeEvent, expected: ChangeEvent) {
+  const comparable = ({ flags: _flags, diff, ...rest }: ChangeEvent) => ({
+    ...rest,
+    diff: { ...diff, deleted: [...diff.deleted.keys()] },
+  });
+  expect(comparable(actual)).toStrictEqual(comparable(expected));
 }
 
 export const getPrevError = [
