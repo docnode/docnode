@@ -533,7 +533,9 @@ export class DocSyncClient<
         const doc = this._docBinding.deserialize(stored.serializedDoc);
         localOperations.forEach((operationsBatch) => {
           operationsBatch.forEach((operations) => {
-            this._docBinding.applyOperations(doc, operations);
+            this._docBinding.applyOperations(doc, operations, {
+              skipUndo: true,
+            });
           });
         });
         return doc;

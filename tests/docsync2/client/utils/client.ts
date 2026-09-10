@@ -10,6 +10,7 @@ import { DocNodeBinding } from "@docukit/docsync2/docnode";
 import {
   defineNode,
   type Doc,
+  type UndoManagerConfig,
   type JsonDoc,
   type Operations,
 } from "@docukit/docnode";
@@ -67,12 +68,17 @@ export type TestClient = {
 };
 
 export const createTestClient = (options?: {
+  undoManager?: UndoManagerConfig;
   timing?: ClientConfig<Doc, JsonDoc, Operations>["timing"];
   userId?: string;
 }): TestClient => {
   const docArgs = createTestDocArgs();
   const binding = DocNodeBinding([
-    { type: docArgs.type, extensions: [{ nodes: [TestNode] }] },
+    {
+      type: docArgs.type,
+      extensions: [{ nodes: [TestNode] }],
+      ...(options?.undoManager ? { undoManager: options.undoManager } : {}),
+    },
   ]);
   const { queryClient, docSync, provider } = createTestDocSyncClient(
     binding,

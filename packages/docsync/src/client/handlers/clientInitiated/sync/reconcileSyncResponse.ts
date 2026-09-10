@@ -100,7 +100,7 @@ export async function prepareSyncReconciliation<
 
     const doc = client["_docBinding"].deserialize(baseSerializedDoc);
     applyOperations(client, doc, data.operations, { skipUndo: true });
-    applyOperations(client, doc, localOperations);
+    applyOperations(client, doc, localOperations, { skipUndo: true });
     const serializedDoc = client["_docBinding"].serialize(doc);
 
     const recheckStored = await ctx.getSerializedDoc({ docId });
@@ -175,8 +175,11 @@ export function finalizeSyncReconciliation<
       client,
       prepared.replacementDoc,
       prepared.pendingProviderOperations,
+      { skipUndo: true },
     );
-    applyOperations(client, prepared.replacementDoc, pendingMemoryOperations);
+    applyOperations(client, prepared.replacementDoc, pendingMemoryOperations, {
+      skipUndo: true,
+    });
     return { type: "replaceDoc", doc: prepared.replacementDoc };
   }
 

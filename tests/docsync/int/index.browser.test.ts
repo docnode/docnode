@@ -127,10 +127,12 @@ describe("Local-First", () => {
       await otherTab.loadDoc();
       await otherTab.assertMemoryDoc(["Hello"]);
       await otherTab.assertIDBDoc({ doc: [], ops: ["Hello"] });
+      await otherTab.assertCanUndo(false);
       expect(syncCallCount(otherTab)).toBe(otherTabSyncCallsBeforeLoad);
 
       otherTab.connect();
       await otherTab.assertIDBDoc({ doc: ["Hello"], ops: [] });
+      await otherTab.assertCanUndo(false);
       expect(syncCallCount(otherTab)).toBeGreaterThan(
         otherTabSyncCallsBeforeLoad,
       );
@@ -261,7 +263,7 @@ describe("Local-First", () => {
     });
   });
 
-  test("local broadcast changes are undoable by the same user in another tab", async () => {
+  test("local broadcasts keep undo and redo in the originating tab", async () => {
     await testWrapper(async ({ reference, otherTab }) => {
       await reference.loadDoc();
       await otherTab.loadDoc();
@@ -275,7 +277,27 @@ describe("Local-First", () => {
       await reference.assertMemoryDoc(["Hello"]);
 
       await reference.assertCanUndo(true);
-      await otherTab.assertCanUndo(true);
+      await otherTab.assertCanUndo(false);
+
+      otherTab.doc?.undoManager.undo();
+      await otherTab.assertMemoryDoc(["Hello"]);
+
+      reference.doc?.undoManager.undo();
+      await otherTab.assertMemoryDoc([]);
+      await otherTab.assertCanUndo(false);
+      expect(reference.doc?.undoManager.canRedo()).toBe(true);
+      expect(otherTab.doc?.undoManager.canRedo()).toBe(false);
+
+      otherTab.addChild("Other tab");
+      otherTab.doc?.forceCommit();
+      await reference.assertMemoryDoc(["Other tab"]);
+      expect(reference.doc?.undoManager.canRedo()).toBe(true);
+
+      reference.doc?.undoManager.redo();
+      await otherTab.assertMemoryDoc(["Other tab", "Hello"]);
+      otherTab.doc?.undoManager.undo();
+      await reference.assertMemoryDoc(["Hello"]);
+      await reference.assertCanUndo(true);
     });
   });
 

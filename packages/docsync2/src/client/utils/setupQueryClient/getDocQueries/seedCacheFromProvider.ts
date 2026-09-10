@@ -35,7 +35,7 @@ export const seedCacheFromProvider = async <
       const operationsBatches = await ctx.getOperations({ docId: args.id });
       for (const operations of operationsBatches) {
         for (const operation of operations) {
-          docBinding.applyOperations(doc, operation);
+          docBinding.applyOperations(doc, operation, { skipUndo: true });
         }
       }
       return { docId: args.id, doc };

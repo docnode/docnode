@@ -74,3 +74,34 @@ test("should not undo remote operations, including remote rebroadcasts to other 
   await remote.assertContent(INITIAL_BLOCKS);
   await remote.otherDevice.assertSelection(ORIGINAL_REFERENCE_SELECTION);
 });
+
+test("another browser tab cannot undo local edits or undo and redo broadcasts", async ({
+  page,
+  context,
+}) => {
+  const { reference, remote: otherPage } = await createEditorPair(
+    page,
+    context,
+  );
+  const edited = ["Item one.", "Item two.", "Itxree."];
+
+  await reference.reference.selectRange(THIRD_PARAGRAPH, 2, 7);
+  await reference.reference.type("x");
+  await otherPage.assertContent(edited);
+
+  await otherPage.reference.pressAndAssertSelectionUnchanged("ControlOrMeta+z");
+  await otherPage.assertContent(edited);
+  await reference.assertContent(edited);
+
+  await reference.reference.press("ControlOrMeta+z");
+  await otherPage.assertContent(INITIAL_BLOCKS);
+  await otherPage.reference.pressAndAssertSelectionUnchanged("ControlOrMeta+z");
+  await otherPage.assertContent(INITIAL_BLOCKS);
+  await reference.assertContent(INITIAL_BLOCKS);
+
+  await reference.reference.press("ControlOrMeta+Shift+z");
+  await otherPage.assertContent(edited);
+  await otherPage.reference.pressAndAssertSelectionUnchanged("ControlOrMeta+z");
+  await otherPage.assertContent(edited);
+  await reference.assertContent(edited);
+});

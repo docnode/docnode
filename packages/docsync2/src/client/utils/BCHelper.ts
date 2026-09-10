@@ -59,9 +59,8 @@ export class BCHelper<D extends object, S extends object, O extends object> {
         docBinding.applyOperations(
           data.doc,
           message.operations,
-          message.source === "network"
-            ? { ...message.flags, skipUndo: true }
-            : message.flags,
+          // Incoming changes belong to another tab, even for the same user.
+          { ...message.flags, skipUndo: true },
         );
       } finally {
         client["_changeOrigin"] = "local";
