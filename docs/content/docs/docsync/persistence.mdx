@@ -11,9 +11,4 @@ DocSync provides a batteries-included, local-first client/server that synchroniz
 - IndexedDB for local storage
 - BroadcastChannel for cross-tab synchronization
 
-With DocNode undo enabled, each tab records only its own changes in undo history.
-Changes received from other tabs or devices still update the document, including
-undo and redo, but do not enter the receiving tab's history. Undo history is not
-persisted or shared automatically.
-
 It can adapt strategy by context:
