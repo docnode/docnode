@@ -962,6 +962,103 @@ describe("applyOperations", () => {
     expect(flags).toStrictEqual([{ skipUndo: true }, {}]);
     assertDoc(doc, ["remote", "local"]);
   });
+
+  test("skips inserts of nodes that already exist and applies the rest", () => {
+    const doc = createTextDocWithUndo();
+    checkUndoManager(2, doc, () => {
+      const [existing] = text(doc, "existing");
+      const created = doc.createNode(Text);
+      doc.root.append(existing!);
+      doc.forceCommit();
+      doc.applyOperations([
+        [
+          [
+            0,
+            [
+              [existing!.id, "text"],
+              [created.id, "text"],
+            ],
+            0,
+            0,
+            0,
+          ],
+        ],
+        {
+          [existing!.id]: { value: JSON.stringify("updated") },
+          [created.id]: { value: JSON.stringify("created") },
+        },
+      ]);
+      assertDoc(doc, ["updated", "created"]);
+      expect(doc.getNodeById(existing!.id)).toBe(existing);
+    });
+  });
+
+  test("a batch whose inserts all exist still applies its state patch", () => {
+    const doc = createTextDocWithUndo();
+    checkUndoManager(2, doc, () => {
+      const [existing] = text(doc, "existing");
+      doc.root.append(existing!);
+      doc.forceCommit();
+      doc.applyOperations([
+        [[0, [[existing!.id, "text"]], 0, 0, 0]],
+        { [existing!.id]: { value: JSON.stringify("updated") } },
+      ]);
+      assertDoc(doc, ["updated"]);
+    });
+  });
+
+  test("an operation that cannot be created still aborts the batch silently", () => {
+    const doc = createTextDocWithUndo();
+    const [existing] = text(doc, "existing");
+    doc.root.append(existing!);
+    doc.forceCommit();
+    const id = doc.createNode(Text).id;
+    expect(() =>
+      doc.applyOperations([
+        [[0, [[id, "unregistered"]], 0, 0, 0]],
+        { [existing!.id]: { value: JSON.stringify("updated") } },
+      ]),
+    ).not.toThrow();
+    assertDoc(doc, ["existing"]);
+  });
+
+  test("an undo step made redundant by an excluded change is skipped without breaking history", () => {
+    const doc = createTextDocWithUndo();
+    const [trash, other] = text(doc, "Trash", "other");
+    doc.forceCommit(() => doc.root.append(trash!, other!), { skipUndo: true });
+    trash!.delete();
+    doc.forceCommit();
+    doc.forceCommit(() => doc.root.append(trash!), { skipUndo: true });
+    doc.undoManager.undo();
+    assertDoc(doc, ["other", "Trash"]);
+    expect(doc.undoManager.canUndo()).toBe(false);
+    expect(doc.undoManager.canRedo()).toBe(false);
+    other!.state.value.set("edited");
+    doc.forceCommit();
+    // The undo that changed nothing must not leave the manager in undo mode.
+    expect(doc.undoManager.canUndo()).toBe(true);
+    expect(doc.undoManager.canRedo()).toBe(false);
+    doc.undoManager.undo();
+    assertDoc(doc, ["other", "Trash"]);
+  });
+
+  test("a redo step made redundant by an excluded change is skipped without breaking history", () => {
+    const doc = createTextDocWithUndo();
+    const [node] = text(doc, "node");
+    doc.forceCommit(() => doc.root.append(node!), { skipUndo: true });
+    node!.delete();
+    doc.forceCommit();
+    doc.undoManager.undo();
+    assertDoc(doc, ["node"]);
+    doc.forceCommit(() => node!.delete(), { skipUndo: true });
+    doc.undoManager.redo();
+    assertDoc(doc, []);
+    expect(doc.undoManager.canRedo()).toBe(false);
+    doc.root.append(...text(doc, "next"));
+    doc.forceCommit();
+    expect(doc.undoManager.canUndo()).toBe(true);
+    expect(doc.undoManager.canRedo()).toBe(false);
+  });
 });
 
 describe("change", () => {
