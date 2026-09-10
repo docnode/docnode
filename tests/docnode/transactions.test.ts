@@ -1035,10 +1035,14 @@ describe("applyOperations", () => {
   test("an undo step made redundant by an excluded change is skipped without breaking history", () => {
     const doc = createTextDocWithUndo();
     const [trash, other] = text(doc, "Trash", "other");
-    doc.forceCommit(() => doc.root.append(trash!, other!), { skipUndo: true });
+    doc.undoManager.skipUndo(() =>
+      doc.forceCommit(() => doc.root.append(trash!, other!)),
+    );
     trash!.delete();
     doc.forceCommit();
-    doc.forceCommit(() => doc.root.append(trash!), { skipUndo: true });
+    doc.undoManager.skipUndo(() =>
+      doc.forceCommit(() => doc.root.append(trash!)),
+    );
     doc.undoManager.undo();
     assertDoc(doc, ["other", "Trash"]);
     expect(doc.undoManager.canUndo()).toBe(false);
@@ -1055,12 +1059,14 @@ describe("applyOperations", () => {
   test("a redo step made redundant by an excluded change is skipped without breaking history", () => {
     const doc = createTextDocWithUndo();
     const [node] = text(doc, "node");
-    doc.forceCommit(() => doc.root.append(node!), { skipUndo: true });
+    doc.undoManager.skipUndo(() =>
+      doc.forceCommit(() => doc.root.append(node!)),
+    );
     node!.delete();
     doc.forceCommit();
     doc.undoManager.undo();
     assertDoc(doc, ["node"]);
-    doc.forceCommit(() => node!.delete(), { skipUndo: true });
+    doc.undoManager.skipUndo(() => doc.forceCommit(() => node!.delete()));
     doc.undoManager.redo();
     assertDoc(doc, []);
     expect(doc.undoManager.canRedo()).toBe(false);

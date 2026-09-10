@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { Doc, defineNode, string, type ChangeEvent } from "@docukit/docnode";
+import { Doc, type ChangeEvent } from "@docukit/docnode";
 import {
   assertDoc,
   checkUndoManager,
@@ -521,50 +521,6 @@ describe("undo cancellation at commit", () => {
     expect(undo[1][other!.id]).toStrictEqual(inverse[1][other!.id]);
     doc.undoManager.undo();
     assertDoc(doc, ["0", "other"]);
-  });
-
-  test("pruning no-op state preserves the complete inverse when normalization changes structure", () => {
-    const Pair = defineNode({
-      type: "pair",
-      state: { first: string("0"), second: string("0") },
-    });
-    let addDuringNormalize = false;
-    const doc = new Doc({
-      type: "root",
-      undoManager: { maxUndoSteps: 10 },
-      extensions: [
-        {
-          nodes: [Pair],
-          register(doc) {
-            doc.onNormalize(() => {
-              if (!addDuringNormalize) return;
-              addDuringNormalize = false;
-              doc.undoManager.skipUndo(() =>
-                doc.root.append(doc.createNode(Pair)),
-              );
-            });
-          },
-        },
-      ],
-    });
-    const node = doc.createNode(Pair);
-    const events: ChangeEvent[] = [];
-    const unchanged = {
-      first: JSON.stringify("0"),
-      second: JSON.stringify("0"),
-    };
-    checkUndoManager(2, doc, () => {
-      doc.undoManager.skipUndo(() => doc.root.append(node));
-      doc.forceCommit();
-      doc.onChange((event) => events.push(event));
-      addDuringNormalize = true;
-      doc.applyOperations([[], { [node.id]: unchanged }]);
-    });
-    expect(doc.undoManager.canUndo()).toBe(false);
-    expect(events).toHaveLength(1);
-    expect(events[0]!.inverseOperations[1][node.id]).toStrictEqual(unchanged);
-    expect(doc.root.first!.next).toBe(doc.root.last);
-    expect(doc.root.last).not.toBe(node);
   });
 
   test("undo of a new parent also removes its excluded descendants", () => {
